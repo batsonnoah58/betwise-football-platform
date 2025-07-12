@@ -1,0 +1,198 @@
+// PesaPal Payment Integration
+// This file handles PesaPal API integration for deposits and subscriptions
+
+export interface PesaPalConfig {
+  consumerKey: string;
+  consumerSecret: string;
+  businessShortCode: string;
+  passkey: string;
+  environment: 'sandbox' | 'live';
+}
+
+export interface PaymentRequest {
+  amount: number;
+  phoneNumber: string;
+  reference: string;
+  description: string;
+  callbackUrl: string;
+}
+
+export interface PaymentResponse {
+  success: boolean;
+  transactionId?: string;
+  checkoutUrl?: string;
+  error?: string;
+}
+
+export interface PaymentStatus {
+  transactionId: string;
+  status: 'pending' | 'completed' | 'failed';
+  amount: number;
+  phoneNumber: string;
+  timestamp: string;
+}
+
+class PesaPalClient {
+  private config: PesaPalConfig;
+  private baseUrl: string;
+
+  constructor(config: PesaPalConfig) {
+    this.config = config;
+    this.baseUrl = config.environment === 'live' 
+      ? 'https://api.pesapal.com' 
+      : 'https://api.pesapal.com/sandbox';
+  }
+
+  private async getAccessToken(): Promise<string> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/Auth/RequestToken`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          consumer_key: this.config.consumerKey,
+          consumer_secret: this.config.consumerSecret,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get access token');
+      }
+
+      const data = await response.json();
+      return data.token;
+    } catch (error) {
+      console.error('Error getting PesaPal access token:', error);
+      throw error;
+    }
+  }
+
+  async initiatePayment(payment: PaymentRequest): Promise<PaymentResponse> {
+    try {
+      const token = await this.getAccessToken();
+
+      const payload = {
+        id: payment.reference,
+        currency: 'KES',
+        amount: payment.amount,
+        description: payment.description,
+        callback_url: payment.callbackUrl,
+        notification_id: payment.reference,
+        billing_address: {
+          email_address: 'user@betwise.com',
+          phone_number: payment.phoneNumber,
+          country_code: 'KE',
+          first_name: 'BetWise',
+          last_name: 'User',
+        },
+      };
+
+      const response = await fetch(`${this.baseUrl}/api/Transactions/SubmitOrderRequest`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to initiate payment');
+      }
+
+      const data = await response.json();
+      
+      return {
+        success: true,
+        transactionId: data.order_tracking_id,
+        checkoutUrl: data.redirect_url,
+      };
+    } catch (error) {
+      console.error('Error initiating PesaPal payment:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Payment initiation failed',
+      };
+    }
+  }
+
+  async checkPaymentStatus(transactionId: string): Promise<PaymentStatus> {
+    try {
+      const token = await this.getAccessToken();
+
+      const response = await fetch(`${this.baseUrl}/api/Transactions/GetTransactionStatus?orderTrackingId=${transactionId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check payment status');
+      }
+
+      const data = await response.json();
+      
+      return {
+        transactionId: data.order_tracking_id,
+        status: this.mapPesaPalStatus(data.payment_status_description),
+        amount: data.amount,
+        phoneNumber: data.phone_number,
+        timestamp: data.created_date,
+      };
+    } catch (error) {
+      console.error('Error checking PesaPal payment status:', error);
+      throw error;
+    }
+  }
+
+  private mapPesaPalStatus(pesaPalStatus: string): 'pending' | 'completed' | 'failed' {
+    const statusMap: Record<string, 'pending' | 'completed' | 'failed'> = {
+      'COMPLETED': 'completed',
+      'PENDING': 'pending',
+      'FAILED': 'failed',
+      'CANCELLED': 'failed',
+    };
+    
+    return statusMap[pesaPalStatus] || 'pending';
+  }
+
+  // Simulate PesaPal payment for development/testing
+  async simulatePayment(payment: PaymentRequest): Promise<PaymentResponse> {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Simulate success response
+    return {
+      success: true,
+      transactionId: `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      checkoutUrl: `https://checkout.pesapal.com/simulate?transaction_id=${Date.now()}`,
+    };
+  }
+
+  async simulatePaymentStatus(transactionId: string): Promise<PaymentStatus> {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Simulate completed payment
+    return {
+      transactionId,
+      status: 'completed',
+      amount: 500, // Default amount
+      phoneNumber: '254700000000',
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+// Initialize PesaPal client with environment variables
+const pesaPalConfig: PesaPalConfig = {
+  consumerKey: (import.meta as any).env?.VITE_PESAPAL_CONSUMER_KEY || 'your_consumer_key',
+  consumerSecret: (import.meta as any).env?.VITE_PESAPAL_CONSUMER_SECRET || 'your_consumer_secret',
+  businessShortCode: (import.meta as any).env?.VITE_PESAPAL_BUSINESS_SHORTCODE || 'your_shortcode',
+  passkey: (import.meta as any).env?.VITE_PESAPAL_PASSKEY || 'your_passkey',
+  environment: ((import.meta as any).env?.VITE_PESAPAL_ENVIRONMENT as 'sandbox' | 'live') || 'sandbox',
+};
+
+export const pesaPalClient = new PesaPalClient(pesaPalConfig); 

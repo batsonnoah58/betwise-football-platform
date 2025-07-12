@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useAuth } from '../AuthGuard';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { CheckCircle, Clock, Star, Zap } from 'lucide-react';
-import { toast } from '../../hooks/use-toast';
+import { CheckCircle, Clock, Star, Zap, ExternalLink } from 'lucide-react';
+import { PaymentService } from '../../services/paymentService';
+import { toast } from 'sonner';
 
 interface DailySubscriptionModalProps {
   onClose: () => void;
@@ -11,31 +12,47 @@ interface DailySubscriptionModalProps {
 
 export const DailySubscriptionModal: React.FC<DailySubscriptionModalProps> = ({ onClose }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const { user, grantDailyAccess } = useAuth();
 
   const handlePayment = async () => {
-    if (!user || user.walletBalance < 500) {
-      toast({
-        title: "Insufficient Funds",
-        description: "You need at least KES 500 in your wallet to access today's odds. Please deposit funds first.",
-        variant: "destructive",
-      });
+    if (!user) {
+      toast.error("Please log in to subscribe");
+      return;
+    }
+
+    if (!phoneNumber || phoneNumber.length < 10) {
+      toast.error("Please enter a valid phone number");
       return;
     }
 
     setIsProcessing(true);
 
-    // Simulate payment processing
-    setTimeout(() => {
-      grantDailyAccess();
-      toast({
-        title: "Access Granted!",
-        description: "You now have access to today's sure odds until midnight",
-        variant: "default",
-      });
+    try {
+      const response = await PaymentService.initiateSubscription(
+        user.id,
+        phoneNumber
+      );
+
+      if (response.success && response.checkoutUrl) {
+        setCheckoutUrl(response.checkoutUrl);
+        toast.success("Subscription initiated! Redirecting to PesaPal...");
+      } else {
+        toast.error(response.error || "Failed to initiate subscription");
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      toast.error("Subscription failed. Please try again.");
+    } finally {
       setIsProcessing(false);
-      onClose();
-    }, 2000);
+    }
+  };
+
+  const handleCheckoutRedirect = () => {
+    if (checkoutUrl) {
+      window.open(checkoutUrl, '_blank');
+    }
   };
 
   const features = [
@@ -81,30 +98,56 @@ export const DailySubscriptionModal: React.FC<DailySubscriptionModalProps> = ({ 
             </div>
           </div>
 
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <div className="text-sm mb-2">
-              <span className="font-medium">Wallet Balance:</span> KES {user?.walletBalance?.toLocaleString() || 0}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Phone Number</label>
+            <input
+              type="tel"
+              placeholder="254700000000"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <div className="text-xs text-muted-foreground">
+              Enter your M-Pesa registered phone number
             </div>
-            {user && user.walletBalance < 500 && (
-              <div className="text-destructive text-sm">
-                ⚠️ Insufficient balance. Please deposit at least KES 500 to continue.
-              </div>
-            )}
           </div>
 
-          <div className="flex space-x-3">
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              Maybe Later
-            </Button>
-            <Button
-              onClick={handlePayment}
-              disabled={!user || user.walletBalance < 500 || isProcessing}
-              className="flex-1"
-              variant="gradient"
-            >
-              {isProcessing ? 'Processing...' : 'Unlock for KES 500'}
-            </Button>
-          </div>
+          {checkoutUrl ? (
+            <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="text-green-800 text-sm">
+                  Subscription initiated successfully! Click the button below to complete your payment on PesaPal.
+                </div>
+              </div>
+              <div className="flex space-x-3">
+                <Button variant="outline" onClick={onClose} className="flex-1">
+                  Close
+                </Button>
+                <Button
+                  onClick={handleCheckoutRedirect}
+                  className="flex-1"
+                  variant="gradient"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Complete Payment
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex space-x-3">
+              <Button variant="outline" onClick={onClose} className="flex-1">
+                Maybe Later
+              </Button>
+              <Button
+                onClick={handlePayment}
+                disabled={!user || !phoneNumber || isProcessing}
+                className="flex-1"
+                variant="gradient"
+              >
+                {isProcessing ? 'Processing...' : 'Unlock for KES 500'}
+              </Button>
+            </div>
+          )}
 
           <div className="text-xs text-center text-muted-foreground">
             Access expires at midnight. New payment required daily.

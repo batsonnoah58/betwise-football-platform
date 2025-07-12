@@ -6,286 +6,314 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
-  // Allows to automatically instanciate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
-  }
+export interface Database {
   public: {
     Tables: {
       bets: {
         Row: {
-          bet_on: Database["public"]["Enums"]["game_result"]
+          bet_on: 'pending' | 'home_win' | 'draw' | 'away_win'
           game_id: number
           id: number
           odds: number
           placed_at: string
           potential_winnings: number
           stake: number
-          status: Database["public"]["Enums"]["bet_status"]
+          status: 'active' | 'won' | 'lost'
           user_id: string
         }
         Insert: {
-          bet_on: Database["public"]["Enums"]["game_result"]
+          bet_on?: 'pending' | 'home_win' | 'draw' | 'away_win'
           game_id: number
-          id?: never
+          id?: number
           odds: number
           placed_at?: string
           potential_winnings: number
           stake: number
-          status?: Database["public"]["Enums"]["bet_status"]
+          status?: 'active' | 'won' | 'lost'
           user_id: string
         }
         Update: {
-          bet_on?: Database["public"]["Enums"]["game_result"]
+          bet_on?: 'pending' | 'home_win' | 'draw' | 'away_win'
           game_id?: number
-          id?: never
+          id?: number
           odds?: number
           placed_at?: string
           potential_winnings?: number
           stake?: number
-          status?: Database["public"]["Enums"]["bet_status"]
+          status?: 'active' | 'won' | 'lost'
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "bets_game_id_fkey"
-            columns: ["game_id"]
+            foreignKeyName: 'bets_game_id_fkey'
+            columns: ['game_id']
             isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
+            referencedRelation: 'games'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "bets_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'bets_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
         ]
       }
       games: {
         Row: {
           away_team_id: number
-          confidence: string | null
-          created_at: string
+          away_team_score: number | null
           home_team_id: number
+          home_team_score: number | null
           id: number
-          kick_off_time: string
           league_id: number
-          odds_away: number | null
-          odds_draw: number | null
-          odds_home: number | null
-          result: Database["public"]["Enums"]["game_result"]
-          status: Database["public"]["Enums"]["game_status"]
-          updated_at: string
+          match_date: string
+          odds_draw: number
+          odds_home_win: number
+          odds_away_win: number
+          status: 'upcoming' | 'live' | 'finished'
         }
         Insert: {
           away_team_id: number
-          confidence?: string | null
-          created_at?: string
+          away_team_score?: number | null
           home_team_id: number
-          id?: never
-          kick_off_time: string
+          home_team_score?: number | null
+          id?: number
           league_id: number
-          odds_away?: number | null
-          odds_draw?: number | null
-          odds_home?: number | null
-          result?: Database["public"]["Enums"]["game_result"]
-          status?: Database["public"]["Enums"]["game_status"]
-          updated_at?: string
+          match_date: string
+          odds_draw: number
+          odds_home_win: number
+          odds_away_win: number
+          status?: 'upcoming' | 'live' | 'finished'
         }
         Update: {
           away_team_id?: number
-          confidence?: string | null
-          created_at?: string
+          away_team_score?: number | null
           home_team_id?: number
-          id?: never
-          kick_off_time?: string
+          home_team_score?: number | null
+          id?: number
           league_id?: number
-          odds_away?: number | null
-          odds_draw?: number | null
-          odds_home?: number | null
-          result?: Database["public"]["Enums"]["game_result"]
-          status?: Database["public"]["Enums"]["game_status"]
-          updated_at?: string
+          match_date?: string
+          odds_draw?: number
+          odds_home_win?: number
+          odds_away_win?: number
+          status?: 'upcoming' | 'live' | 'finished'
         }
         Relationships: [
           {
-            foreignKeyName: "games_away_team_id_fkey"
-            columns: ["away_team_id"]
+            foreignKeyName: 'games_away_team_id_fkey'
+            columns: ['away_team_id']
             isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
+            referencedRelation: 'teams'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "games_home_team_id_fkey"
-            columns: ["home_team_id"]
+            foreignKeyName: 'games_home_team_id_fkey'
+            columns: ['home_team_id']
             isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
+            referencedRelation: 'teams'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "games_league_id_fkey"
-            columns: ["league_id"]
+            foreignKeyName: 'games_league_id_fkey'
+            columns: ['league_id']
             isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          },
+            referencedRelation: 'leagues'
+            referencedColumns: ['id']
+          }
         ]
       }
       leagues: {
         Row: {
-          created_at: string
+          country: string
           id: number
           name: string
         }
         Insert: {
-          created_at?: string
-          id?: never
+          country: string
+          id?: number
           name: string
         }
         Update: {
-          created_at?: string
-          id?: never
+          country?: string
+          id?: number
           name?: string
         }
         Relationships: []
       }
+      payment_transactions: {
+        Row: {
+          id: string
+          user_id: string
+          type: 'deposit' | 'subscription'
+          amount: number
+          status: 'pending' | 'completed' | 'failed'
+          transaction_id: string | null
+          phone_number: string
+          description: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          user_id: string
+          type: 'deposit' | 'subscription'
+          amount: number
+          status: 'pending' | 'completed' | 'failed'
+          transaction_id?: string | null
+          phone_number: string
+          description: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: 'deposit' | 'subscription'
+          amount?: number
+          status?: 'pending' | 'completed' | 'failed'
+          transaction_id?: string | null
+          phone_number?: string
+          description?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'payment_transactions_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       profiles: {
         Row: {
-          created_at: string
           daily_access_granted_until: string | null
-          full_name: string
+          email: string
           id: string
-          updated_at: string
+          username: string
           wallet_balance: number
         }
         Insert: {
-          created_at?: string
           daily_access_granted_until?: string | null
-          full_name: string
+          email: string
           id: string
-          updated_at?: string
+          username: string
           wallet_balance?: number
         }
         Update: {
-          created_at?: string
           daily_access_granted_until?: string | null
-          full_name?: string
+          email?: string
           id?: string
-          updated_at?: string
+          username?: string
           wallet_balance?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'profiles_id_fkey'
+            columns: ['id']
+            isOneToOne: true
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          }
+        ]
       }
       teams: {
         Row: {
-          created_at: string
           id: number
           league_id: number
-          logo: string | null
           name: string
         }
         Insert: {
-          created_at?: string
-          id?: never
+          id?: number
           league_id: number
-          logo?: string | null
           name: string
         }
         Update: {
-          created_at?: string
-          id?: never
+          id?: number
           league_id?: number
-          logo?: string | null
           name?: string
         }
         Relationships: [
           {
-            foreignKeyName: "teams_league_id_fkey"
-            columns: ["league_id"]
+            foreignKeyName: 'teams_league_id_fkey'
+            columns: ['league_id']
             isOneToOne: false
-            referencedRelation: "leagues"
-            referencedColumns: ["id"]
-          },
+            referencedRelation: 'leagues'
+            referencedColumns: ['id']
+          }
         ]
       }
       transactions: {
         Row: {
           amount: number
-          created_at: string
-          description: string | null
+          description: string
           id: number
-          type: string
+          type: 'deposit' | 'withdrawal' | 'bet' | 'subscription'
           user_id: string
         }
         Insert: {
           amount: number
-          created_at?: string
-          description?: string | null
-          id?: never
-          type: string
+          description: string
+          id?: number
+          type: 'deposit' | 'withdrawal' | 'bet' | 'subscription'
           user_id: string
         }
         Update: {
           amount?: number
-          created_at?: string
-          description?: string | null
-          id?: never
-          type?: string
+          description?: string
+          id?: number
+          type?: 'deposit' | 'withdrawal' | 'bet' | 'subscription'
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "transactions_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'transactions_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
         ]
       }
       user_roles: {
         Row: {
-          created_at: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
+          id: number
+          role: 'admin' | 'user'
           user_id: string
         }
         Insert: {
-          created_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
+          id?: number
+          role: 'admin' | 'user'
           user_id: string
         }
         Update: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          id?: number
+          role?: 'admin' | 'user'
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'user_roles_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _user_id: string
-          _role: Database["public"]["Enums"]["app_role"]
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      app_role: "admin" | "user"
-      bet_status: "active" | "won" | "lost"
-      game_result: "home_win" | "draw" | "away_win" | "pending"
-      game_status: "upcoming" | "live" | "finished"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never

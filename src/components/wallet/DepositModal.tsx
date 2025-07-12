@@ -4,8 +4,9 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { CreditCard, Smartphone, DollarSign } from 'lucide-react';
-import { toast } from '../../hooks/use-toast';
+import { CreditCard, Smartphone, DollarSign, ExternalLink } from 'lucide-react';
+import { PaymentService } from '../../services/paymentService';
+import { toast } from 'sonner';
 
 interface DepositModalProps {
   onClose: () => void;
@@ -13,44 +14,62 @@ interface DepositModalProps {
 
 export const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
   const [amount, setAmount] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'card'>('mpesa');
   const [isProcessing, setIsProcessing] = useState(false);
-  const { updateWallet } = useAuth();
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const { user, updateWallet } = useAuth();
 
   const handleDeposit = async () => {
     const depositAmount = parseFloat(amount);
     
     if (isNaN(depositAmount) || depositAmount <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid amount greater than 0",
-        variant: "destructive",
-      });
+      toast.error("Please enter a valid amount greater than 0");
       return;
     }
 
     if (depositAmount < 100) {
-      toast({
-        title: "Minimum Deposit",
-        description: "Minimum deposit amount is KES 100",
-        variant: "destructive",
-      });
+      toast.error("Minimum deposit amount is KES 100");
+      return;
+    }
+
+    if (!phoneNumber || phoneNumber.length < 10) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+
+    if (!user) {
+      toast.error("Please log in to make a deposit");
       return;
     }
 
     setIsProcessing(true);
 
-    // Simulate payment processing
-    setTimeout(() => {
-      updateWallet(depositAmount);
-      toast({
-        title: "Deposit Successful",
-        description: `KES ${depositAmount.toLocaleString()} has been added to your wallet`,
-        variant: "default",
-      });
+    try {
+      const response = await PaymentService.initiateDeposit(
+        user.id,
+        depositAmount,
+        phoneNumber
+      );
+
+      if (response.success && response.checkoutUrl) {
+        setCheckoutUrl(response.checkoutUrl);
+        toast.success("Payment initiated! Redirecting to PesaPal...");
+      } else {
+        toast.error(response.error || "Failed to initiate payment");
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast.error("Payment failed. Please try again.");
+    } finally {
       setIsProcessing(false);
-      onClose();
-    }, 2000);
+    }
+  };
+
+  const handleCheckoutRedirect = () => {
+    if (checkoutUrl) {
+      window.open(checkoutUrl, '_blank');
+    }
   };
 
   const formatCurrency = (value: string) => {
@@ -93,6 +112,20 @@ export const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
                 Amount: {formatCurrency(amount)}
               </div>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="254700000000"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+            />
+            <div className="text-xs text-muted-foreground">
+              Enter your M-Pesa registered phone number
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -143,19 +176,42 @@ export const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
             </div>
           </div>
 
-          <div className="flex space-x-3">
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleDeposit}
-              disabled={!amount || isProcessing}
-              className="flex-1"
-              variant="gradient"
-            >
-              {isProcessing ? 'Processing...' : `Deposit ${amount ? formatCurrency(amount) : ''}`}
-            </Button>
-          </div>
+          {checkoutUrl ? (
+            <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="text-green-800 text-sm">
+                  Payment initiated successfully! Click the button below to complete your payment on PesaPal.
+                </div>
+              </div>
+              <div className="flex space-x-3">
+                <Button variant="outline" onClick={onClose} className="flex-1">
+                  Close
+                </Button>
+                <Button
+                  onClick={handleCheckoutRedirect}
+                  className="flex-1"
+                  variant="gradient"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Complete Payment
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex space-x-3">
+              <Button variant="outline" onClick={onClose} className="flex-1">
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeposit}
+                disabled={!amount || !phoneNumber || isProcessing}
+                className="flex-1"
+                variant="gradient"
+              >
+                {isProcessing ? 'Processing...' : `Deposit ${amount ? formatCurrency(amount) : ''}`}
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -1,0 +1,15 @@
+# Copy this content to your .env file
+
+# Supabase Configuration
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# PesaPal Configuration
+VITE_PESAPAL_CONSUMER_KEY=AavkSqNKh2cHSk2p4vH-3X0bPx3k_T3h6Fc9ANi2Ki-agOICTis75XogcqvgBMXhTlHwOTEt5gN7L03W
+VITE_PESAPAL_CONSUMER_SECRET=EIpGzdrOjREpQM5fsNCEycT-OUlmTJB4_QbJXKVCbmGKi5pySO4vJJyW1rZD08Y30ZmXi3Vp2e6vzy5R
+VITE_PESAPAL_BUSINESS_SHORTCODE=your_pesapal_business_shortcode
+VITE_PESAPAL_PASSKEY=your_pesapal_passkey
+VITE_PESAPAL_ENVIRONMENT=sandbox
+
+# Development Mode
+VITE_MODE=development 

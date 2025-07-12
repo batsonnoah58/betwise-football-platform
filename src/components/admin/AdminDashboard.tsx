@@ -11,6 +11,7 @@ import { TeamManagement } from './TeamManagement';
 import { LeagueManagement } from './LeagueManagement';
 import { UserManagement } from './UserManagement';
 import { ResultManagement } from './ResultManagement';
+import { PaymentTransactions } from './PaymentTransactions';
 
 interface AdminStats {
   totalUsers: number;
@@ -20,7 +21,7 @@ interface AdminStats {
 }
 
 export const AdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'games' | 'teams' | 'leagues' | 'users' | 'results'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'games' | 'teams' | 'leagues' | 'users' | 'results' | 'payments'>('overview');
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     activeGames: 0,
@@ -83,7 +84,8 @@ export const AdminDashboard: React.FC = () => {
     { id: 'teams', label: 'Teams', icon: Users },
     { id: 'leagues', label: 'Leagues', icon: Calendar },
     { id: 'users', label: 'Users', icon: Users },
-    { id: 'results', label: 'Results', icon: CheckCircle }
+    { id: 'results', label: 'Results', icon: CheckCircle },
+    { id: 'payments', label: 'Payments', icon: DollarSign }
   ];
 
   const formatCurrency = (amount: number) => {
@@ -245,6 +247,7 @@ export const AdminDashboard: React.FC = () => {
         {activeTab === 'leagues' && <LeagueManagement />}
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'results' && <ResultManagement />}
+        {activeTab === 'payments' && <PaymentTransactions />}
       </div>
     </div>
   );
