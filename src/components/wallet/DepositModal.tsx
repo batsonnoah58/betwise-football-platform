@@ -6,6 +6,7 @@ import { Label } from '../ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { CreditCard, Smartphone, DollarSign, ExternalLink } from 'lucide-react';
 import { PaymentService } from '../../services/paymentService';
+import { formatPhoneNumber, getPhoneNumberError } from '../../utils/phoneNumber';
 import { toast } from 'sonner';
 
 interface DepositModalProps {
@@ -33,10 +34,14 @@ export const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
       return;
     }
 
-    if (!phoneNumber || phoneNumber.length < 10) {
-      toast.error("Please enter a valid phone number");
+    const phoneError = getPhoneNumberError(phoneNumber);
+    if (phoneError) {
+      toast.error(phoneError);
       return;
     }
+
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    console.log('Formatted phone number:', formattedPhone);
 
     if (!user) {
       toast.error("Please log in to make a deposit");
@@ -49,7 +54,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
       const response = await PaymentService.initiateDeposit(
         user.id,
         depositAmount,
-        phoneNumber
+        formattedPhone
       );
 
       if (response.success && response.checkoutUrl) {
@@ -119,12 +124,15 @@ export const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
             <Input
               id="phone"
               type="tel"
-              placeholder="254700000000"
+              placeholder="0700000000 or 254700000000"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
             />
             <div className="text-xs text-muted-foreground">
-              Enter your M-Pesa registered phone number
+              Enter your M-Pesa registered phone number (any format accepted)
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Examples: 0700000000, 700000000, 254700000000
             </div>
           </div>
 

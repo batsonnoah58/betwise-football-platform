@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { CheckCircle, Clock, Star, Zap, ExternalLink } from 'lucide-react';
 import { PaymentService } from '../../services/paymentService';
+import { formatPhoneNumber, validatePhoneNumber, getPhoneNumberError, phoneNumberExamples } from '../../utils/phoneNumber';
 import { toast } from 'sonner';
 
 interface DailySubscriptionModalProps {
@@ -22,17 +23,21 @@ export const DailySubscriptionModal: React.FC<DailySubscriptionModalProps> = ({ 
       return;
     }
 
-    if (!phoneNumber || phoneNumber.length < 10) {
-      toast.error("Please enter a valid phone number");
+    const phoneError = getPhoneNumberError(phoneNumber);
+    if (phoneError) {
+      toast.error(phoneError);
       return;
     }
+
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    console.log('Formatted phone number:', formattedPhone);
 
     setIsProcessing(true);
 
     try {
       const response = await PaymentService.initiateSubscription(
         user.id,
-        phoneNumber
+        formattedPhone
       );
 
       if (response.success && response.checkoutUrl) {
@@ -102,13 +107,16 @@ export const DailySubscriptionModal: React.FC<DailySubscriptionModalProps> = ({ 
             <label className="text-sm font-medium">Phone Number</label>
             <input
               type="tel"
-              placeholder="254700000000"
+              placeholder="0700000000 or 254700000000"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <div className="text-xs text-muted-foreground">
-              Enter your M-Pesa registered phone number
+              Enter your M-Pesa registered phone number (any format accepted)
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Examples: 0700000000, 700000000, 254700000000
             </div>
           </div>
 
