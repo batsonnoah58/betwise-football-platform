@@ -5,6 +5,7 @@ import { WalletSection } from './wallet/WalletSection';
 import { DailySubscriptionModal } from './subscription/DailySubscriptionModal';
 import { GamesList } from './games/GamesList';
 import { AdminDashboard } from './admin/AdminDashboard';
+import { DebugInfo } from './DebugInfo';
 
 export const Dashboard: React.FC = () => {
   const { user, hasDailyAccess } = useAuth();
@@ -44,6 +45,8 @@ export const Dashboard: React.FC = () => {
       {showSubscriptionModal && (
         <DailySubscriptionModal onClose={() => setShowSubscriptionModal(false)} />
       )}
+      
+      <DebugInfo />
     </div>
   );
 };

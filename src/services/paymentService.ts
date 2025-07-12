@@ -21,6 +21,8 @@ export class PaymentService {
     phoneNumber: string
   ): Promise<PaymentResponse> {
     try {
+      console.log('Initiating deposit with:', { userId, amount, phoneNumber });
+      
       const reference = `DEP_${userId}_${Date.now()}`;
       
       const paymentRequest: PaymentRequest = {
@@ -31,11 +33,17 @@ export class PaymentService {
         callbackUrl: `${window.location.origin}/payment/callback`,
       };
 
+      console.log('Payment request:', paymentRequest);
+
       // Use simulation for development, real API for production
       const isDevelopment = (import.meta as any).env?.MODE === 'development';
+      console.log('Environment mode:', isDevelopment ? 'development' : 'production');
+      
       const response = isDevelopment 
         ? await pesaPalClient.simulatePayment(paymentRequest)
         : await pesaPalClient.initiatePayment(paymentRequest);
+
+      console.log('Payment response:', response);
 
       if (response.success && response.transactionId) {
         // Store transaction in database
@@ -71,6 +79,8 @@ export class PaymentService {
     phoneNumber: string
   ): Promise<PaymentResponse> {
     try {
+      console.log('Initiating subscription with:', { userId, phoneNumber });
+      
       const reference = `SUB_${userId}_${Date.now()}`;
       
       const paymentRequest: PaymentRequest = {
@@ -81,11 +91,17 @@ export class PaymentService {
         callbackUrl: `${window.location.origin}/payment/callback`,
       };
 
+      console.log('Subscription request:', paymentRequest);
+
       // Use simulation for development, real API for production
       const isDevelopment = (import.meta as any).env?.MODE === 'development';
+      console.log('Environment mode:', isDevelopment ? 'development' : 'production');
+      
       const response = isDevelopment 
         ? await pesaPalClient.simulatePayment(paymentRequest)
         : await pesaPalClient.initiatePayment(paymentRequest);
+
+      console.log('Subscription response:', response);
 
       if (response.success && response.transactionId) {
         // Store transaction in database
@@ -220,7 +236,17 @@ export class PaymentService {
 
       if (error) throw error;
 
-      return data || [];
+      return (data || []).map(transaction => ({
+        id: transaction.id,
+        userId: transaction.user_id,
+        type: transaction.type,
+        amount: transaction.amount,
+        status: transaction.status,
+        transactionId: transaction.transaction_id,
+        phoneNumber: transaction.phone_number,
+        description: transaction.description,
+        createdAt: transaction.created_at,
+      }));
     } catch (error) {
       console.error('Error fetching user transactions:', error);
       return [];
@@ -237,7 +263,17 @@ export class PaymentService {
 
       if (error) throw error;
 
-      return data || [];
+      return (data || []).map(transaction => ({
+        id: transaction.id,
+        userId: transaction.user_id,
+        type: transaction.type,
+        amount: transaction.amount,
+        status: transaction.status,
+        transactionId: transaction.transaction_id,
+        phoneNumber: transaction.phone_number,
+        description: transaction.description,
+        createdAt: transaction.created_at,
+      }));
     } catch (error) {
       console.error('Error fetching pending transactions:', error);
       return [];
