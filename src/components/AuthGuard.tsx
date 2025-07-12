@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return {
           id: profile.id,
           email: session?.user?.email || '',
-          fullName: profile.full_name,
+          fullName: profile.username || profile.email || '',
           walletBalance: Number(profile.wallet_balance),
           isAdmin,
           dailyAccessGrantedUntil: profile.daily_access_granted_until
@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => subscription.unsubscribe();
-  }, [session]);
+  }, []); // Remove session from dependency array to prevent infinite loop
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -172,7 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .from('transactions')
           .insert({
             user_id: user.id,
-            type: amount > 0 ? 'deposit' : 'bet_placed',
+            type: amount > 0 ? 'deposit' : 'bet',
             amount: Math.abs(amount),
             description: amount > 0 ? 'Wallet deposit' : 'Bet placed'
           });

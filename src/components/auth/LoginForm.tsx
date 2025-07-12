@@ -93,9 +93,7 @@ export const LoginForm: React.FC = () => {
         </form>
 
         <div className="mt-6 text-center text-sm text-muted-foreground">
-          <p>Demo credentials:</p>
-          <p>Email: demo@betwise.com | Password: any</p>
-          <p>Admin: admin@betwise.com | Password: any</p>
+          <p>Don't have an account? <a href="/signup" className="text-primary hover:underline">Sign up here</a></p>
         </div>
       </CardContent>
     </Card>
