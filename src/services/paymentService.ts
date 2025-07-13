@@ -27,13 +27,16 @@ export class PaymentService {
         return_url: `${window.location.origin}/payment/success?reference=${reference}`,
         cancel_url: `${window.location.origin}/payment/cancel`,
       };
-      const response = await fetch('/api/paypal-initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(paymentRequest),
+      const { data, error } = await supabase.functions.invoke('paypal-initiate', {
+        body: paymentRequest
       });
-      const data = await response.json();
-      if (data.approvalLink) {
+      
+      if (error) {
+        throw new Error(error.message || 'Payment initiation failed');
+      }
+      
+      const responseData = data;
+      if (responseData.approvalLink) {
         // Store transaction in database
         await supabase
           .from('payment_transactions')
@@ -43,13 +46,13 @@ export class PaymentService {
             type: 'deposit',
             amount,
             status: 'pending',
-            transaction_id: data.id,
+            transaction_id: responseData.id,
             phone_number: phoneNumber,
             description: `Wallet deposit of USD ${amount}`,
           });
-        return { success: true, checkoutUrl: data.approvalLink };
+        return { success: true, checkoutUrl: responseData.approvalLink };
       } else {
-        throw new Error(data.error || 'Payment initiation failed');
+        throw new Error(responseData.error || 'Payment initiation failed');
       }
     } catch (error) {
       toast.error('Failed to initiate payment. Please try again.');
@@ -69,13 +72,16 @@ export class PaymentService {
         return_url: `${window.location.origin}/payment/success?reference=${reference}`,
         cancel_url: `${window.location.origin}/payment/cancel`,
       };
-      const response = await fetch('/api/paypal-initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(paymentRequest),
+      const { data, error } = await supabase.functions.invoke('paypal-initiate', {
+        body: paymentRequest
       });
-      const data = await response.json();
-      if (data.approvalLink) {
+      
+      if (error) {
+        throw new Error(error.message || 'Payment initiation failed');
+      }
+      
+      const responseData = data;
+      if (responseData.approvalLink) {
         // Store transaction in database
         await supabase
           .from('payment_transactions')
@@ -85,13 +91,13 @@ export class PaymentService {
             type: 'subscription',
             amount: 5.00,
             status: 'pending',
-            transaction_id: data.id,
+            transaction_id: responseData.id,
             phone_number: phoneNumber,
             description: 'Daily subscription for BetWise sure odds access',
           });
-        return { success: true, checkoutUrl: data.approvalLink };
+        return { success: true, checkoutUrl: responseData.approvalLink };
       } else {
-        throw new Error(data.error || 'Payment initiation failed');
+        throw new Error(responseData.error || 'Payment initiation failed');
       }
     } catch (error) {
       toast.error('Failed to initiate subscription payment. Please try again.');
