@@ -5,6 +5,8 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { useAuth } from '../AuthGuard';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -13,6 +15,7 @@ export const LoginForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +25,12 @@ export const LoginForm: React.FC = () => {
     const success = await login(email, password);
     if (!success) {
       setError('Invalid email or password');
+      setIsLoading(false);
+      return;
     }
+    toast.success('Login successful!');
     setIsLoading(false);
+    navigate('/');
   };
 
   return (
