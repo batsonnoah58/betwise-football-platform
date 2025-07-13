@@ -39,7 +39,7 @@ export const Header: React.FC = () => {
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2 bg-muted/50 px-3 py-1.5 rounded-full">
                 <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">{user?.fullName}</span>
+                <span className="text-sm font-medium text-foreground">{user?.fullName || 'Guest'}</span>
               </div>
 
               <div className="flex items-center space-x-2 bg-primary/10 px-3 py-1.5 rounded-full">

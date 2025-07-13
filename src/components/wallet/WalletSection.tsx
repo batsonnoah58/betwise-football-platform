@@ -36,7 +36,7 @@ export const WalletSection: React.FC = () => {
       const { data: bets } = await supabase
         .from('bets')
         .select('status, stake, odds')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .gte('placed_at', today.toISOString());
 
       if (bets) {
@@ -72,7 +72,7 @@ export const WalletSection: React.FC = () => {
           {/* Main Balance */}
           <div className="text-center space-y-2">
             <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary mb-2">
-              {formatCurrency(user?.walletBalance || 0)}
+              {formatCurrency(user?.walletBalance ?? 0)}
             </div>
             <div className="text-xs sm:text-sm text-muted-foreground flex items-center justify-center space-x-1">
               <TrendingUp className="h-3 w-3 text-success" />

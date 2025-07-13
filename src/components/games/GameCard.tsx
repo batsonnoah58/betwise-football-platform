@@ -67,7 +67,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
   };
 
   const handleBet = async (betType: 'home' | 'draw' | 'away') => {
-    if (!activated) return;
+    if (!activated || !user) return;
     
     const stake = parseFloat(stakes[betType]);
     
@@ -76,7 +76,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
       return;
     }
 
-    if (stake > user.walletBalance) {
+    if (stake > (user?.walletBalance ?? 0)) {
       toast.error("Your stake exceeds your wallet balance");
       return;
     }
