@@ -1,3 +1,9 @@
+const { createClient } = require('@supabase/supabase-js');
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // Use the service role key for write access
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 exports.handler = async (event, context) => {
   if (event.httpMethod === "OPTIONS") {
     return {
@@ -24,8 +30,19 @@ exports.handler = async (event, context) => {
     // Example: Extract transaction details
     const { transaction_id, status, amount, reference } = body;
 
-    // TODO: Verify the IPN (check signature, etc. if PesaPal provides)
-    // TODO: Update your database with the payment status
+    // Update payment_transactions table in Supabase
+    const { error } = await supabase
+      .from('payment_transactions')
+      .update({ status: status ? status.toLowerCase() : 'completed' }) // e.g., 'completed', 'failed'
+      .eq('transaction_id', transaction_id);
+
+    if (error) {
+      console.error("Supabase update error:", error);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ success: false, error: error.message }),
+      };
+    }
 
     // Respond with 200 OK to acknowledge receipt
     return {
