@@ -59,7 +59,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
 
       if (response.success && response.checkoutUrl) {
         setCheckoutUrl(response.checkoutUrl);
-        toast.success("Payment initiated! Redirecting to PesaPal...");
+        toast.success("Payment initiated! Redirecting to PayPal...");
       } else {
         toast.error(response.error || "Failed to initiate payment");
       }
@@ -188,7 +188,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
             <div className="space-y-4">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div className="text-green-800 text-sm">
-                  Payment initiated successfully! Click the button below to complete your payment on PesaPal.
+                  Payment initiated successfully! Click the button below to complete your payment on PayPal.
                 </div>
               </div>
               <div className="flex space-x-3">

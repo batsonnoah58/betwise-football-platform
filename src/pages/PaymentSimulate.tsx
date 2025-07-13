@@ -37,7 +37,7 @@ export const PaymentSimulate: React.FC = () => {
               Processing your payment simulation...
             </p>
             <div className="mt-4 text-sm text-muted-foreground">
-              This is a development simulation. In production, you would be redirected to PesaPal.
+              This is a development simulation. In production, you would be redirected to PayPal.
             </div>
           </div>
         </div>

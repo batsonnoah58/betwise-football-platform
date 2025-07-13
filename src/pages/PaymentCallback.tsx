@@ -16,10 +16,11 @@ export const PaymentCallback: React.FC = () => {
   useEffect(() => {
     const handlePaymentCallback = async () => {
       try {
-        const transactionId = searchParams.get('OrderTrackingId');
-        const reference = searchParams.get('OrderMerchantReference');
+        // For PayPal, the order ID is returned as 'token' in the query params
+        const orderId = searchParams.get('token');
+        const reference = searchParams.get('reference');
 
-        if (!transactionId || !reference) {
+        if (!orderId || !reference) {
           setStatus('failed');
           setMessage('Invalid payment callback parameters. Please try again.');
           toast.error('Invalid payment callback parameters.');
@@ -27,36 +28,43 @@ export const PaymentCallback: React.FC = () => {
         }
 
         if (!user) {
-          // Wait for user to be available
+          setStatus('failed');
+          setMessage('User not found. Please log in.');
+          toast.error('User not found. Please log in.');
           return;
         }
 
-        // Check payment status with PesaPal
-        const paymentStatusResult = await PaymentService.checkPaymentStatus(transactionId);
-
-        if (paymentStatusResult.status === 'completed') {
-          const isSubscription = reference.startsWith('SUB_');
-          const transactionType = isSubscription ? 'subscription' : 'deposit';
-          await PaymentService.processPaymentSuccess(transactionId, user.id, transactionType);
-          setStatus('success');
-        } else if (paymentStatusResult.status === 'failed') {
+        // Call PayPal capture endpoint
+        const captureRes = await fetch('/api/paypal-capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId })
+        });
+        const captureData = await captureRes.json();
+        if (!captureRes.ok) {
           setStatus('failed');
-          setMessage('Payment failed or was cancelled. Please try again.');
-        } else {
-          // Pending
-          setStatus('failed'); // Or a new 'pending' state
-          setMessage('Payment is still pending. We will update your account once it is confirmed.');
+          setMessage('Payment capture failed. Please contact support.');
+          toast.error('Payment capture failed.');
+          return;
         }
+
+        // Update transaction status in your DB
+        await fetch('/api/update-transaction-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reference, status: 'completed' })
+        });
+
+        setStatus('success');
+        setMessage('Payment successful!');
       } catch (error) {
-        console.error('Payment callback error:', error);
         setStatus('failed');
-        setMessage('An unexpected error occurred. Please contact support if the issue persists.');
-        toast.error('Error processing payment callback.');
+        setMessage('Payment processing failed.');
+        toast.error('Payment processing failed.');
       }
     };
-
     handlePaymentCallback();
-  }, [searchParams, user, navigate]);
+  }, [searchParams, user]);
 
   const handleGoToDashboard = () => {
     navigate('/dashboard');

@@ -42,7 +42,7 @@ export const DailySubscriptionModal: React.FC<DailySubscriptionModalProps> = ({ 
 
       if (response.success && response.checkoutUrl) {
         setCheckoutUrl(response.checkoutUrl);
-        toast.success("Subscription initiated! Redirecting to PesaPal...");
+        toast.success("Subscription initiated! Redirecting to PayPal...");
       } else {
         toast.error(response.error || "Failed to initiate subscription");
       }
@@ -124,7 +124,7 @@ export const DailySubscriptionModal: React.FC<DailySubscriptionModalProps> = ({ 
             <div className="space-y-4">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div className="text-green-800 text-sm">
-                  Subscription initiated successfully! Click the button below to complete your payment on PesaPal.
+                  Subscription initiated successfully! Click the button below to complete your payment on PayPal.
                 </div>
               </div>
               <div className="flex space-x-3">
