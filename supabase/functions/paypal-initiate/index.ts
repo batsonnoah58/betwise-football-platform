@@ -7,9 +7,33 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+const allowedOrigins = [
+  "https://bet-wise.netlify.app",
+  "http://localhost:5173"
+];
+
+function getCORSHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  return {
+    "Access-Control-Allow-Origin": corsOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Max-Age": "86400",
+  };
+}
+
 serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: getCORSHeaders(req),
+    });
+  }
+
   if (req.method !== "POST") {
-    return new Response("Method Not Allowed", { status: 405 });
+    return new Response("Method Not Allowed", { status: 405, headers: getCORSHeaders(req) });
   }
 
   const { amount, currency, return_url, cancel_url } = await req.json();
@@ -32,7 +56,7 @@ serve(async (req) => {
   if (!tokenRes.ok || !tokenData.access_token) {
     return new Response(
       JSON.stringify({ error: tokenData }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCORSHeaders(req), "Content-Type": "application/json" } }
     );
   }
   const accessToken = tokenData.access_token;
@@ -64,7 +88,7 @@ serve(async (req) => {
   if (!orderRes.ok) {
     return new Response(
       JSON.stringify({ error: orderData }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCORSHeaders(req), "Content-Type": "application/json" } }
     );
   }
 
@@ -73,6 +97,6 @@ serve(async (req) => {
 
   return new Response(
     JSON.stringify({ id: orderData.id, approvalLink }),
-    { headers: { "Content-Type": "application/json" } }
+    { headers: { ...getCORSHeaders(req), "Content-Type": "application/json" } }
   );
 });
