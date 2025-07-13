@@ -155,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
@@ -164,7 +164,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Login error:', error.message);
         return false;
       }
-      
+      // Set minimal user state immediately for fast UI feedback
+      if (data?.user) {
+        setUser({
+          id: data.user.id,
+          email: data.user.email || '',
+          fullName: data.user.user_metadata?.full_name || data.user.email || '',
+          walletBalance: 0,
+          isAdmin: false,
+        });
+        // Fetch full profile in background
+        fetchUserProfile(data.user.id).then((profile) => {
+          if (profile) setUser(profile);
+        });
+      }
       return true;
     } catch (error) {
       console.error('Login error:', error);
