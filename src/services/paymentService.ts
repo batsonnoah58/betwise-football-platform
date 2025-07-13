@@ -35,17 +35,21 @@ export class PaymentService {
 
       console.log('Payment request:', paymentRequest);
 
-      // Use simulation for development, real API for production
-      const isDevelopment = (import.meta as any).env?.MODE === 'development';
-      console.log('Environment mode:', isDevelopment ? 'development' : 'production');
-      
-      const response = isDevelopment 
-        ? await pesaPalClient.simulatePayment(paymentRequest)
-        : await pesaPalClient.initiatePayment(paymentRequest);
+      // Call Netlify Function instead of direct PesaPal API
+      const response = await fetch(
+        'https://bet-wise.netlify.app/.netlify/functions/pesapal-initiate',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(paymentRequest),
+        }
+      );
+      const data = await response.json();
+      console.log('Netlify Function payment response:', data);
 
-      console.log('Payment response:', response);
-
-      if (response.success && response.transactionId) {
+      if (data.success && data.transactionId) {
         // Store transaction in database
         await supabase
           .from('payment_transactions')
@@ -55,14 +59,14 @@ export class PaymentService {
             type: 'deposit',
             amount,
             status: 'pending',
-            transaction_id: response.transactionId,
+            transaction_id: data.transactionId,
             phone_number: phoneNumber,
             description: paymentRequest.description,
           });
 
-        return response;
+        return data;
       } else {
-        throw new Error(response.error || 'Payment initiation failed');
+        throw new Error(data.error || 'Payment initiation failed');
       }
     } catch (error) {
       console.error('Error initiating deposit:', error);
@@ -93,17 +97,21 @@ export class PaymentService {
 
       console.log('Subscription request:', paymentRequest);
 
-      // Use simulation for development, real API for production
-      const isDevelopment = (import.meta as any).env?.MODE === 'development';
-      console.log('Environment mode:', isDevelopment ? 'development' : 'production');
-      
-      const response = isDevelopment 
-        ? await pesaPalClient.simulatePayment(paymentRequest)
-        : await pesaPalClient.initiatePayment(paymentRequest);
+      // Call Netlify Function instead of direct PesaPal API
+      const response = await fetch(
+        'https://bet-wise.netlify.app/.netlify/functions/pesapal-initiate',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(paymentRequest),
+        }
+      );
+      const data = await response.json();
+      console.log('Netlify Function subscription response:', data);
 
-      console.log('Subscription response:', response);
-
-      if (response.success && response.transactionId) {
+      if (data.success && data.transactionId) {
         // Store transaction in database
         await supabase
           .from('payment_transactions')
@@ -113,14 +121,14 @@ export class PaymentService {
             type: 'subscription',
             amount: 500,
             status: 'pending',
-            transaction_id: response.transactionId,
+            transaction_id: data.transactionId,
             phone_number: phoneNumber,
             description: paymentRequest.description,
           });
 
-        return response;
+        return data;
       } else {
-        throw new Error(response.error || 'Payment initiation failed');
+        throw new Error(data.error || 'Payment initiation failed');
       }
     } catch (error) {
       console.error('Error initiating subscription:', error);
@@ -134,7 +142,7 @@ export class PaymentService {
 
   static async checkPaymentStatus(transactionId: string): Promise<PaymentStatus> {
     try {
-      const isDevelopment = (import.meta as any).env?.MODE === 'development';
+      const isDevelopment = (import.meta as any).env?.VITE_MODE === 'development';
       const status = isDevelopment 
         ? await pesaPalClient.simulatePaymentStatus(transactionId)
         : await pesaPalClient.checkPaymentStatus(transactionId);
