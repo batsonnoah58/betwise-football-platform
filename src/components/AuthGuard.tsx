@@ -188,7 +188,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (fullName: string, email: string, password: string): Promise<boolean> => {
     try {
       const redirectUrl = `${window.location.origin}/`;
-      
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -199,12 +198,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       });
-      
       if (error) {
         console.error('Signup error:', error.message);
         return false;
       }
-      
+      // Attempt to log in immediately after signup
+      const loginSuccess = await login(email, password);
+      if (!loginSuccess) {
+        return false;
+      }
       return true;
     } catch (error) {
       console.error('Signup error:', error);
