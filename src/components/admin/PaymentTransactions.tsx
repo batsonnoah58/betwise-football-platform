@@ -105,7 +105,7 @@ export const PaymentTransactions: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold">Payment Transactions</h2>
           <p className="text-muted-foreground">
-            Monitor and manage PesaPal payment transactions
+            Monitor and manage payment transactions
           </p>
         </div>
         <Button onClick={handleRefresh} disabled={refreshing}>
@@ -163,7 +163,7 @@ export const PaymentTransactions: React.FC = () => {
         <CardHeader>
           <CardTitle>Recent Transactions</CardTitle>
           <CardDescription>
-            Latest payment transactions from PesaPal
+            Latest payment transactions
           </CardDescription>
         </CardHeader>
         <CardContent>

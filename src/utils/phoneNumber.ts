@@ -1,4 +1,4 @@
-// Phone number utilities for Kenyan numbers and PesaPal integration
+// Phone number utilities for Kenyan numbers
 
 export const formatPhoneNumber = (input: string): string => {
   // Remove all non-digit characters
