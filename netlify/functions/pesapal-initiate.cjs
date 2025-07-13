@@ -27,18 +27,20 @@ exports.handler = async (event, context) => {
     const consumerKey = process.env.PESAPAL_CONSUMER_KEY;
     const consumerSecret = process.env.PESAPAL_CONSUMER_SECRET;
     const environment = process.env.PESAPAL_ENVIRONMENT || "sandbox";
-    const baseUrl = environment === "live"
-      ? "https://api.pesapal.com"
-      : "https://api.pesapal.com/sandbox";
+    // Use v3 endpoint for both environments
+    const baseUrl = "https://api.pesapal.com/v3";
 
+    const tokenUrl = `${baseUrl}/api/Auth/RequestToken`;
+    const tokenBody = {
+      consumer_key: consumerKey,
+      consumer_secret: consumerSecret,
+    };
+    console.log('Requesting PesaPal token:', tokenUrl, tokenBody);
     // 1. Get access token
-    const tokenRes = await fetch(`${baseUrl}/api/Auth/RequestToken`, {
+    const tokenRes = await fetch(tokenUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        consumer_key: consumerKey,
-        consumer_secret: consumerSecret,
-      }),
+      body: JSON.stringify(tokenBody),
     });
     const tokenText = await tokenRes.text();
     console.log('PesaPal Auth/RequestToken raw response:', tokenText);
