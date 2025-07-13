@@ -7,6 +7,7 @@ import { LoadingSpinner } from "./components/LoadingSpinner";
 import { AuthProvider } from "./components/AuthGuard";
 import React, { Suspense } from "react";
 import { initializePerformanceOptimizations } from "./lib/performance-utils";
+import './index.css'; // Import CSS via JS/TS only
 
 // Create a QueryClient with optimized settings
 const queryClient = new QueryClient({

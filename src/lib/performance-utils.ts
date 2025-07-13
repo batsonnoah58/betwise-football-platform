@@ -2,20 +2,20 @@
 
 // Preload critical resources
 export const preloadCriticalResources = () => {
-  // Preload critical CSS
-  const criticalCSS = document.createElement('link');
-  criticalCSS.rel = 'preload';
-  criticalCSS.as = 'style';
-  criticalCSS.href = '/src/index.css';
-  document.head.appendChild(criticalCSS);
+  // Preload critical CSS (only if in public or built output)
+  // Example: '/assets/index-xxxx.css' or '/index.css' if copied to public
+  // const criticalCSS = document.createElement('link');
+  // criticalCSS.rel = 'preload';
+  // criticalCSS.as = 'style';
+  // criticalCSS.href = '/index.css';
+  // document.head.appendChild(criticalCSS);
 
-  // Preload critical fonts
-  const fontLink = document.createElement('link');
-  fontLink.rel = 'preload';
-  fontLink.as = 'font';
-  fontLink.type = 'font/woff2';
-  fontLink.crossOrigin = 'anonymous';
-  // Add when using custom fonts
+  // Preload critical fonts (if in public or built output)
+  // const fontLink = document.createElement('link');
+  // fontLink.rel = 'preload';
+  // fontLink.as = 'font';
+  // fontLink.type = 'font/woff2';
+  // fontLink.crossOrigin = 'anonymous';
   // fontLink.href = '/fonts/inter-var.woff2';
   // document.head.appendChild(fontLink);
 };
@@ -141,27 +141,13 @@ export const addResourceHints = () => {
   });
 };
 
-// Optimize bundle loading
-export const optimizeBundleLoading = () => {
-  // Add modulepreload for critical modules
-  const criticalModules = [
-    '/src/pages/Index.tsx',
-    '/src/components/Dashboard.tsx'
-  ];
-
-  criticalModules.forEach(module => {
-    const link = document.createElement('link');
-    link.rel = 'modulepreload';
-    link.href = module;
-    document.head.appendChild(link);
-  });
-};
+// Remove optimizeBundleLoading and any modulepreload for /src/ files
 
 // Initialize all performance optimizations
 export const initializePerformanceOptimizations = () => {
   preloadCriticalResources();
   addResourceHints();
-  optimizeBundleLoading();
+  // optimizeBundleLoading(); // Removed
   
   // Optimize images after DOM is ready
   if (document.readyState === 'loading') {
