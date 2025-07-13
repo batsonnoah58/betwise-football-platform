@@ -27,10 +27,11 @@ exports.handler = async (event, context) => {
     const consumerKey = process.env.PESAPAL_CONSUMER_KEY;
     const consumerSecret = process.env.PESAPAL_CONSUMER_SECRET;
     const environment = process.env.PESAPAL_ENVIRONMENT || "sandbox";
-    // Use v3 endpoint for both environments
-    const baseUrl = "https://api.pesapal.com/v3";
+    const baseUrl = environment === "live"
+        ? "https://pay.pesapal.com/v3"
+        : "https://cybqa.pesapal.com/pesapal-api/api";
 
-    const tokenUrl = `${baseUrl}/api/Auth/RequestToken`;
+    const tokenUrl = `${baseUrl}/Auth/RequestToken`;
     const tokenBody = {
       consumer_key: consumerKey,
       consumer_secret: consumerSecret,
@@ -56,7 +57,11 @@ exports.handler = async (event, context) => {
     if (!tokenRes.ok || !tokenData.token) {
       return {
         statusCode: 500,
-        body: JSON.stringify({ success: false, error: tokenData }),
+        body: JSON.stringify({
+          success: false,
+          error: 'Failed to authenticate with PesaPal',
+          details: tokenData
+        }),
       };
     }
     const token = tokenData.token;
@@ -68,9 +73,9 @@ exports.handler = async (event, context) => {
       amount,
       description,
       callback_url: callbackUrl,
-      notification_id: reference,
+      ipn_notification_id: reference,
       billing_address: {
-        email_address: "user@betwise.com",
+        email_address: "user@example.com",
         phone_number: phoneNumber,
         country_code: "KE",
         first_name: "BetWise",
@@ -78,7 +83,8 @@ exports.handler = async (event, context) => {
       },
     };
 
-    const paymentRes = await fetch(`${baseUrl}/api/Transactions/SubmitOrderRequest`, {
+    console.log('Submitting PesaPal order request:', payload);
+    const paymentRes = await fetch(`${baseUrl}/Transactions/SubmitOrderRequest`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -87,10 +93,15 @@ exports.handler = async (event, context) => {
       body: JSON.stringify(payload),
     });
     const paymentData = await paymentRes.json();
-    if (!paymentRes.ok) {
+    console.log('PesaPal SubmitOrderRequest response:', paymentData);
+    if (!paymentRes.ok || !paymentData.order_tracking_id) {
       return {
         statusCode: 500,
-        body: JSON.stringify({ success: false, error: paymentData }),
+        body: JSON.stringify({
+          success: false,
+          error: 'Failed to initiate PesaPal transaction',
+          details: paymentData
+        }),
       };
     }
 
