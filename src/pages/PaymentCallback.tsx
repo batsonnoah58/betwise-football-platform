@@ -16,13 +16,18 @@ export const PaymentCallback: React.FC = () => {
   useEffect(() => {
     const handlePaymentCallback = async () => {
       try {
-        const transactionId = searchParams.get('transaction_id');
-        const paymentStatus = searchParams.get('payment_status');
-        const reference = searchParams.get('reference');
+        const transactionId = searchParams.get('OrderTrackingId');
+        const reference = searchParams.get('OrderMerchantReference');
 
         if (!transactionId || !reference) {
           setStatus('failed');
-          setMessage('Invalid payment callback parameters');
+          setMessage('Invalid payment callback parameters. Please try again.');
+          toast.error('Invalid payment callback parameters.');
+          return;
+        }
+
+        if (!user) {
+          // Wait for user to be available
           return;
         }
 
@@ -30,35 +35,28 @@ export const PaymentCallback: React.FC = () => {
         const paymentStatusResult = await PaymentService.checkPaymentStatus(transactionId);
 
         if (paymentStatusResult.status === 'completed') {
-          // Determine transaction type from reference
           const isSubscription = reference.startsWith('SUB_');
           const transactionType = isSubscription ? 'subscription' : 'deposit';
-
-          // Process successful payment
-          await PaymentService.processPaymentSuccess(transactionId, user?.id || '', transactionType);
-
+          await PaymentService.processPaymentSuccess(transactionId, user.id, transactionType);
           setStatus('success');
-          setMessage(
-            transactionType === 'subscription' 
-              ? 'Subscription successful! You now have access to today\'s odds.'
-              : 'Deposit successful! Your wallet has been credited.'
-          );
         } else if (paymentStatusResult.status === 'failed') {
           setStatus('failed');
-          setMessage('Payment failed. Please try again.');
+          setMessage('Payment failed or was cancelled. Please try again.');
         } else {
-          setStatus('failed');
-          setMessage('Payment is still pending. Please check back later.');
+          // Pending
+          setStatus('failed'); // Or a new 'pending' state
+          setMessage('Payment is still pending. We will update your account once it is confirmed.');
         }
       } catch (error) {
         console.error('Payment callback error:', error);
         setStatus('failed');
-        setMessage('Error processing payment. Please contact support.');
+        setMessage('An unexpected error occurred. Please contact support if the issue persists.');
+        toast.error('Error processing payment callback.');
       }
     };
 
     handlePaymentCallback();
-  }, [searchParams, user?.id]);
+  }, [searchParams, user, navigate]);
 
   const handleGoToDashboard = () => {
     navigate('/dashboard');
@@ -94,7 +92,7 @@ export const PaymentCallback: React.FC = () => {
                   Payment Successful!
                 </h2>
                 <p className="text-gray-600 mb-6">
-                  {message}
+                  Your payment has been processed successfully.
                 </p>
                 <Button
                   onClick={handleGoToDashboard}
@@ -112,7 +110,7 @@ export const PaymentCallback: React.FC = () => {
               <XCircle className="h-16 w-16 text-red-500 mx-auto" />
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  Payment Failed
+                  Payment Update
                 </h2>
                 <p className="text-gray-600 mb-6">
                   {message}
