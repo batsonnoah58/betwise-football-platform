@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Clock, Trophy, Users, TrendingUp } from 'lucide-react';
+import { Clock, Trophy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -35,9 +35,10 @@ interface GameCardProps {
 }
 
 export const GameCard: React.FC<GameCardProps> = ({ game }) => {
-  const { user, updateWallet } = useAuth();
+  const { user, hasDailyAccess, updateWallet } = useAuth();
   const [stakes, setStakes] = useState({ home: '', draw: '', away: '' });
   const [bettingOn, setBettingOn] = useState<'home' | 'draw' | 'away' | null>(null);
+  const activated = !!user && hasDailyAccess();
 
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString('en-US', {
@@ -66,7 +67,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
   };
 
   const handleBet = async (betType: 'home' | 'draw' | 'away') => {
-    if (!user) return;
+    if (!activated) return;
     
     const stake = parseFloat(stakes[betType]);
     
@@ -124,6 +125,16 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
   };
 
   const confidence = getConfidenceBadge(game.confidence);
+
+  // Helper for blurred odds
+  const BlurredOdds: React.FC<{ value: number }> = ({ value }) => (
+    <span className="inline-block blur-sm select-none text-gray-400 bg-gray-100 rounded px-2 py-1 relative">
+      {value}
+      <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-primary/80 bg-white/80 bg-opacity-80 rounded pointer-events-none">
+        <span className="">Login & Activate to View</span>
+      </span>
+    </span>
+  );
 
   return (
     <Card className="shadow-betting hover:shadow-glow transition-all duration-300 animate-fade-in overflow-hidden">
@@ -190,9 +201,16 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {/* Home Win */}
             <div className="space-y-2 sm:space-y-3">
-              <div className="text-center p-2 sm:p-3 bg-primary/5 rounded-lg border border-primary/10">
-                <div className="text-base sm:text-lg font-bold text-primary">{game.odds.home}</div>
+              <div className="text-center p-2 sm:p-3 bg-primary/5 rounded-lg border border-primary/10 relative">
+                {activated ? (
+                  <div className="text-base sm:text-lg font-bold text-primary">{game.odds.home}</div>
+                ) : (
+                  <BlurredOdds value={game.odds.home} />
+                )}
                 <div className="text-xs text-muted-foreground">Home Win</div>
+                {!activated && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/80 bg-opacity-80 rounded pointer-events-none"></div>
+                )}
               </div>
               <div className="space-y-2">
                 <Input
@@ -201,12 +219,13 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
                   value={stakes.home}
                   onChange={(e) => setStakes(prev => ({ ...prev, home: e.target.value }))}
                   className="text-center text-sm sm:text-base focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  disabled={!activated}
                 />
                 <Button
                   variant="betting"
                   className="w-full text-xs sm:text-sm h-8 sm:h-9 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   onClick={() => handleBet('home')}
-                  disabled={!stakes.home || bettingOn === 'home'}
+                  disabled={!stakes.home || bettingOn === 'home' || !activated}
                 >
                   {bettingOn === 'home' ? 'Placing...' : `Bet on ${game.homeTeam.name}`}
                 </Button>
@@ -215,9 +234,16 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
 
             {/* Draw */}
             <div className="space-y-2 sm:space-y-3">
-              <div className="text-center p-2 sm:p-3 bg-warning/5 rounded-lg border border-warning/10">
-                <div className="text-base sm:text-lg font-bold text-warning">{game.odds.draw}</div>
+              <div className="text-center p-2 sm:p-3 bg-warning/5 rounded-lg border border-warning/10 relative">
+                {activated ? (
+                  <div className="text-base sm:text-lg font-bold text-warning">{game.odds.draw}</div>
+                ) : (
+                  <BlurredOdds value={game.odds.draw} />
+                )}
                 <div className="text-xs text-muted-foreground">Draw</div>
+                {!activated && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/80 bg-opacity-80 rounded pointer-events-none"></div>
+                )}
               </div>
               <div className="space-y-2">
                 <Input
@@ -226,12 +252,13 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
                   value={stakes.draw}
                   onChange={(e) => setStakes(prev => ({ ...prev, draw: e.target.value }))}
                   className="text-center text-sm sm:text-base focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  disabled={!activated}
                 />
                 <Button
                   variant="betting"
                   className="w-full text-xs sm:text-sm h-8 sm:h-9 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   onClick={() => handleBet('draw')}
-                  disabled={!stakes.draw || bettingOn === 'draw'}
+                  disabled={!stakes.draw || bettingOn === 'draw' || !activated}
                 >
                   {bettingOn === 'draw' ? 'Placing...' : 'Bet on Draw'}
                 </Button>
@@ -240,9 +267,16 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
 
             {/* Away Win */}
             <div className="space-y-2 sm:space-y-3">
-              <div className="text-center p-2 sm:p-3 bg-primary/5 rounded-lg border border-primary/10">
-                <div className="text-base sm:text-lg font-bold text-primary">{game.odds.away}</div>
+              <div className="text-center p-2 sm:p-3 bg-primary/5 rounded-lg border border-primary/10 relative">
+                {activated ? (
+                  <div className="text-base sm:text-lg font-bold text-primary">{game.odds.away}</div>
+                ) : (
+                  <BlurredOdds value={game.odds.away} />
+                )}
                 <div className="text-xs text-muted-foreground">Away Win</div>
+                {!activated && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/80 bg-opacity-80 rounded pointer-events-none"></div>
+                )}
               </div>
               <div className="space-y-2">
                 <Input
@@ -251,24 +285,33 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
                   value={stakes.away}
                   onChange={(e) => setStakes(prev => ({ ...prev, away: e.target.value }))}
                   className="text-center text-sm sm:text-base focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  disabled={!activated}
                 />
                 <Button
                   variant="betting"
                   className="w-full text-xs sm:text-sm h-8 sm:h-9 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   onClick={() => handleBet('away')}
-                  disabled={!stakes.away || bettingOn === 'away'}
+                  disabled={!stakes.away || bettingOn === 'away' || !activated}
                 >
                   {bettingOn === 'away' ? 'Placing...' : `Bet on ${game.awayTeam.name}`}
                 </Button>
               </div>
             </div>
           </div>
+          {/* Overlay CTA for non-activated users */}
+          {!activated && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
+              <div className="bg-white/80 rounded-lg px-4 py-2 shadow text-center">
+                <div className="font-semibold text-primary text-base sm:text-lg mb-1">Activate to View Odds</div>
+                <div className="text-xs text-muted-foreground">Login and pay KES 500 to unlock odds and betting</div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Potential Winnings Info */}
         <div className="text-center p-3 bg-success/5 rounded-lg border border-success/10">
           <div className="flex items-center justify-center space-x-2">
-            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
             <span className="text-xs sm:text-sm font-medium text-success">Potential Winnings</span>
           </div>
           <div className="text-xs text-muted-foreground mt-1">
