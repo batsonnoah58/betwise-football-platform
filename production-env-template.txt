@@ -1,0 +1,23 @@
+# Production Environment Variables Template
+# Copy these variables to your Netlify dashboard
+
+# Supabase Configuration
+VITE_SUPABASE_URL=https://jxvkhsopgqocrfrnkqqp.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4dmtoc29wZ3FvY3Jmcm5rcXFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzMjA0OTksImV4cCI6MjA2Nzg5NjQ5OX0.4iA1NRRmKkQUumjxPckZ7-YSZ39IFyxcaHkkCScsLGM
+
+# PesaPal Live Configuration
+VITE_PESAPAL_CONSUMER_KEY=AavkSqNKh2cHSk2p4vH-3X0bPx3k_T3h6Fc9ANi2Ki-agOICTis75XogcqvgBMXhTlHwOTEt5gN7L03W
+VITE_PESAPAL_CONSUMER_SECRET=EIpGzdrOjREpQM5fsNCEycT-OUlmTJB4_QbJXKVCbmGKi5pySO4vJJyW1rZD08Y30ZmXi3Vp2e6vzy5R
+VITE_PESAPAL_BUSINESS_SHORTCODE=174379
+VITE_PESAPAL_PASSKEY=bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
+VITE_PESAPAL_ENVIRONMENT=live
+
+# Production Mode
+VITE_MODE=production
+
+# Instructions:
+# 1. Go to your Netlify dashboard
+# 2. Navigate to Site Settings > Environment Variables
+# 3. Add each variable above with its corresponding value
+# 4. Save the changes
+# 5. Redeploy your site 

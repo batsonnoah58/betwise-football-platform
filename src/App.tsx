@@ -6,8 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { PaymentCallback } from "./pages/PaymentCallback";
+import { PaymentSimulate } from "./pages/PaymentSimulate";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { useState, useEffect } from "react";
+import { AuthProvider } from "./components/AuthGuard";
 
 const queryClient = new QueryClient();
 
@@ -32,14 +34,17 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/payment/callback" element={<PaymentCallback />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/payment/callback" element={<PaymentCallback />} />
+              <Route path="/payment/simulate" element={<PaymentSimulate />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

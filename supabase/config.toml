@@ -1,1 +1,22 @@
 project_id = "jxvkhsopgqocrfrnkqqp"
+[functions.pesapal-payment]
+enabled = true
+verify_jwt = true
+import_map = "./functions/pesapal-payment/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/pesapal-payment/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/pesapal-payment/*.html" ]
+
+[functions.pesapal-ipn]
+enabled = true
+verify_jwt = true
+import_map = "./functions/pesapal-ipn/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/pesapal-ipn/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/pesapal-ipn/*.html" ]

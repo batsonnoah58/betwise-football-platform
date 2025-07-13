@@ -45,6 +45,12 @@ class PesaPalClient {
 
   private async getAccessToken(): Promise<string> {
     try {
+      console.log('Attempting to get PesaPal access token from:', `${this.baseUrl}/api/Auth/RequestToken`);
+      console.log('Using credentials:', {
+        consumer_key: this.config.consumerKey,
+        consumer_secret: this.config.consumerSecret ? '***SET***' : '***NOT SET***'
+      });
+
       const response = await fetch(`${this.baseUrl}/api/Auth/RequestToken`, {
         method: 'POST',
         headers: {
@@ -56,11 +62,17 @@ class PesaPalClient {
         }),
       });
 
+      console.log('PesaPal auth response status:', response.status);
+      console.log('PesaPal auth response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error('Failed to get access token');
+        const errorText = await response.text();
+        console.error('PesaPal auth error response:', errorText);
+        throw new Error(`Failed to get access token: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('PesaPal auth success, token received');
       return data.token;
     } catch (error) {
       console.error('Error getting PesaPal access token:', error);
@@ -70,7 +82,10 @@ class PesaPalClient {
 
   async initiatePayment(payment: PaymentRequest): Promise<PaymentResponse> {
     try {
+      console.log('Initiating PesaPal payment with payload:', payment);
+      
       const token = await this.getAccessToken();
+      console.log('Got access token, proceeding with payment request');
 
       const payload = {
         id: payment.reference,
@@ -88,6 +103,9 @@ class PesaPalClient {
         },
       };
 
+      console.log('Payment payload:', payload);
+      console.log('Making request to:', `${this.baseUrl}/api/Transactions/SubmitOrderRequest`);
+
       const response = await fetch(`${this.baseUrl}/api/Transactions/SubmitOrderRequest`, {
         method: 'POST',
         headers: {
@@ -97,11 +115,17 @@ class PesaPalClient {
         body: JSON.stringify(payload),
       });
 
+      console.log('Payment response status:', response.status);
+      console.log('Payment response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error('Failed to initiate payment');
+        const errorText = await response.text();
+        console.error('Payment initiation error response:', errorText);
+        throw new Error(`Failed to initiate payment: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('Payment initiation success, data:', data);
       
       return {
         success: true,
@@ -163,11 +187,17 @@ class PesaPalClient {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 2000));
 
+    // Generate a unique transaction ID
+    const transactionId = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create a simulated checkout URL that will redirect back to our callback
+    const simulatedCheckoutUrl = `${window.location.origin}/payment/simulate?transaction_id=${transactionId}&reference=${payment.reference}&payment_status=completed`;
+
     // Simulate success response
     return {
       success: true,
-      transactionId: `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      checkoutUrl: `https://checkout.pesapal.com/simulate?transaction_id=${Date.now()}`,
+      transactionId,
+      checkoutUrl: simulatedCheckoutUrl,
     };
   }
 
