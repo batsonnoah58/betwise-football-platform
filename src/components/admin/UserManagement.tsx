@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Users, Search, Eye, DollarSign, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { RefreshCw, DollarSign, CreditCard, Clock, CheckCircle, XCircle, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface User {
@@ -14,7 +13,7 @@ interface User {
   fullName: string;
   email: string;
   walletBalance: number;
-  dailyAccessGrantedUntil?: string;
+  dailyAccessGrantedUntil: string | null;
   totalBets: number;
   totalWinnings: number;
   totalLosses: number;
@@ -38,88 +37,86 @@ interface UserBet {
 }
 
 export const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userBets, setUserBets] = useState<UserBet[]>([]);
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  // Use React Query for data fetching with caching
+  const { data: users, isLoading, refetch } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+             // Single optimized query to get all user data
+       const { data: usersData, error: usersError } = await supabase
+         .from('profiles')
+         .select(`
+           id,
+           username,
+           wallet_balance,
+           daily_access_granted_until
+         `)
+         .order('id');
 
-  const fetchUsers = async () => {
-    try {
-      // First, fetch basic user profiles with all columns
-      const { data: usersData, error: usersError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('id');
+       if (usersError) throw usersError;
+
+       // Get user roles and bets separately to avoid complex joins
+       const { data: rolesData } = await supabase
+         .from('user_roles')
+         .select('user_id, role');
+
+       const { data: betsData } = await supabase
+         .from('bets')
+         .select('user_id, stake, odds, status, potential_winnings');
+
+       // Create lookup maps for better performance
+       const rolesMap = new Map();
+       rolesData?.forEach(role => {
+         if (!rolesMap.has(role.user_id)) {
+           rolesMap.set(role.user_id, []);
+         }
+         rolesMap.get(role.user_id).push(role.role);
+       });
+
+       const betsMap = new Map();
+       betsData?.forEach(bet => {
+         if (!betsMap.has(bet.user_id)) {
+           betsMap.set(bet.user_id, []);
+         }
+         betsMap.get(bet.user_id).push(bet);
+       });
 
       if (usersError) throw usersError;
 
-      // Transform users data
-      const transformedUsers: User[] = usersData?.map(user => ({
-        id: user.id,
-        fullName: user.full_name || 'Unknown User',
-        email: '', // No email in profiles table
-        walletBalance: Number(user.wallet_balance || 0),
-        dailyAccessGrantedUntil: user.daily_access_granted_until,
-        totalBets: 0,
-        totalWinnings: 0,
-        totalLosses: 0,
-        isAdmin: false // We'll check this separately
-      })) || [];
+             // Transform data in memory instead of multiple DB calls
+       return usersData?.map(user => {
+         const userRoles = rolesMap.get(user.id) || [];
+         const isAdmin = userRoles.includes('admin');
+         const userBets = betsMap.get(user.id) || [];
+         
+         const totalBets = userBets.length;
+         const totalWinnings = userBets
+           .filter((bet: any) => bet.status === 'won')
+           .reduce((sum: number, bet: any) => sum + Number(bet.potential_winnings || 0), 0);
+         const totalLosses = userBets
+           .filter((bet: any) => bet.status === 'lost')
+           .reduce((sum: number, bet: any) => sum + Number(bet.stake || 0), 0);
 
-      // Check admin roles for each user
-      const usersWithRoles = await Promise.all(
-        transformedUsers.map(async (user) => {
-          const { data: rolesData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', user.id);
-
-          const isAdmin = rolesData?.some((role: any) => role.role === 'admin') || false;
-
-          return {
-            ...user,
-            isAdmin
-          };
-        })
-      );
-
-      // Get betting statistics (simplified)
-      const usersWithStats = await Promise.all(
-        usersWithRoles.map(async (user) => {
-          const { data: betsData } = await supabase
-            .from('bets')
-            .select('stake, odds, status, potential_winnings')
-            .eq('user_id', user.id);
-
-          const totalBets = betsData?.length || 0;
-          const totalWinnings = betsData?.filter(bet => bet.status === 'won')
-            .reduce((sum, bet) => sum + Number(bet.potential_winnings || 0), 0) || 0;
-          const totalLosses = betsData?.filter(bet => bet.status === 'lost')
-            .reduce((sum, bet) => sum + Number(bet.stake || 0), 0) || 0;
-
-          return {
-            ...user,
-            totalBets,
-            totalWinnings,
-            totalLosses
-          };
-        })
-      );
-
-      setUsers(usersWithStats);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Failed to load users data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+         return {
+           id: user.id,
+           fullName: user.username || 'Unknown User',
+           email: '', // No email in profiles table
+           walletBalance: Number(user.wallet_balance || 0),
+           dailyAccessGrantedUntil: user.daily_access_granted_until,
+           totalBets,
+           totalWinnings,
+           totalLosses,
+           isAdmin
+         };
+       }) || [];
+    },
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false
+  });
 
   const fetchUserBets = async (userId: string) => {
     try {
@@ -186,14 +183,14 @@ export const UserManagement: React.FC = () => {
     });
   };
 
-  const filteredUsers = users.filter(user =>
+  const filteredUsers = users?.filter(user =>
     user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) || [];
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6">
         <Card className="shadow-betting">
           <CardContent className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -205,191 +202,221 @@ export const UserManagement: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-primary">User Management</h2>
-          <p className="text-muted-foreground">View and manage user accounts and betting history</p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-64"
-            />
+    <div className="space-y-6">
+      <Card className="shadow-betting">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl font-bold">User Management</CardTitle>
+              <CardDescription>
+                Manage user accounts, view betting history, and monitor activity
+              </CardDescription>
+            </div>
+            <Button onClick={() => refetch()} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
           </div>
-        </div>
-      </div>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search users by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+          </div>
 
-      <div className="grid gap-4">
-        {filteredUsers.map((user) => (
-          <Card key={user.id} className="shadow-betting">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="text-3xl">👤</div>
-                  <div>
-                    <h3 className="font-semibold text-lg">{user.fullName}</h3>
-                    <p className="text-muted-foreground text-sm">{user.email}</p>
-                    <div className="flex items-center space-x-4 mt-2">
-                      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground">
-                        {user.totalBets} Bets
-                      </span>
-                      {user.isAdmin && (
-                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-primary text-primary-foreground">
-                          Admin
-                        </span>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Wallet Balance</TableHead>
+                  <TableHead>Total Bets</TableHead>
+                  <TableHead>Winnings</TableHead>
+                  <TableHead>Losses</TableHead>
+                  <TableHead>Access</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{user.fullName}</div>
+                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{formatCurrency(user.walletBalance)}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{user.totalBets}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-green-600 font-medium">
+                        {formatCurrency(user.totalWinnings)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-red-600 font-medium">
+                        {formatCurrency(user.totalLosses)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {user.dailyAccessGrantedUntil ? (
+                        <Badge variant="default" className="bg-green-500">
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">No Access</Badge>
                       )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-6">
-                  <div className="text-right">
-                    <div className="text-sm text-muted-foreground">Wallet Balance</div>
-                    <div className="text-lg font-semibold text-primary">{formatCurrency(user.walletBalance)}</div>
-                  </div>
-                  
-                  <div className="text-right">
-                    <div className="text-sm text-muted-foreground">Total Winnings</div>
-                    <div className="text-lg font-semibold text-success">{formatCurrency(user.totalWinnings)}</div>
-                  </div>
-                  
-                  <div className="text-right">
-                    <div className="text-sm text-muted-foreground">Total Losses</div>
-                    <div className="text-lg font-semibold text-destructive">{formatCurrency(user.totalLosses)}</div>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleViewUserDetails(user)}
-                  >
-                    <Eye className="h-3 w-3 mr-2" />
-                    View Details
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredUsers.length === 0 && (
-        <Card className="shadow-card">
-          <CardContent className="text-center py-12">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No users found</h3>
-            <p className="text-muted-foreground">
-              {searchTerm ? 'Try adjusting your search terms.' : 'No users have registered yet.'}
-            </p>
-          </CardContent>
-        </Card>
-      )}
+                    </TableCell>
+                    <TableCell>
+                      {user.isAdmin ? (
+                        <Badge variant="destructive">Admin</Badge>
+                      ) : (
+                        <Badge variant="outline">User</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        onClick={() => handleViewUserDetails(user)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* User Details Dialog */}
-      <Dialog open={showUserDetails} onOpenChange={setShowUserDetails}>
-        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-primary" />
-              <span>User Details - {selectedUser?.fullName}</span>
-            </DialogTitle>
-            <DialogDescription>
-              View detailed betting history and account information
-            </DialogDescription>
-          </DialogHeader>
+      {showUserDetails && selectedUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">User Details: {selectedUser.fullName}</h2>
+                <Button onClick={() => setShowUserDetails(false)} variant="outline">
+                  Close
+                </Button>
+              </div>
 
-          {selectedUser && (
-            <div className="space-y-6">
-              {/* User Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <Card>
-                  <CardContent className="p-4 text-center">
-                    <DollarSign className="h-6 w-6 text-primary mx-auto mb-2" />
-                    <div className="text-2xl font-bold">{formatCurrency(selectedUser.walletBalance)}</div>
-                    <div className="text-sm text-muted-foreground">Wallet Balance</div>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <DollarSign className="h-5 w-5 mr-2" />
+                      Wallet Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Current Balance:</span>
+                        <span className="font-medium">{formatCurrency(selectedUser.walletBalance)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Winnings:</span>
+                        <span className="font-medium text-green-600">{formatCurrency(selectedUser.totalWinnings)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Losses:</span>
+                        <span className="font-medium text-red-600">{formatCurrency(selectedUser.totalLosses)}</span>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
-                  <CardContent className="p-4 text-center">
-                    <TrendingUp className="h-6 w-6 text-success mx-auto mb-2" />
-                    <div className="text-2xl font-bold">{formatCurrency(selectedUser.totalWinnings)}</div>
-                    <div className="text-sm text-muted-foreground">Total Winnings</div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <TrendingDown className="h-6 w-6 text-destructive mx-auto mb-2" />
-                    <div className="text-2xl font-bold">{formatCurrency(selectedUser.totalLosses)}</div>
-                    <div className="text-sm text-muted-foreground">Total Losses</div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <Calendar className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold">{selectedUser.totalBets}</div>
-                    <div className="text-sm text-muted-foreground">Total Bets</div>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <CreditCard className="h-5 w-5 mr-2" />
+                      Betting Statistics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Total Bets:</span>
+                        <span className="font-medium">{selectedUser.totalBets}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Daily Access:</span>
+                        <span className="font-medium">
+                          {selectedUser.dailyAccessGrantedUntil ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Role:</span>
+                        <span className="font-medium">{selectedUser.isAdmin ? 'Admin' : 'User'}</span>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Betting History */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Betting History</h3>
-                <div className="space-y-3">
-                  {userBets.map((bet) => (
-                    <Card key={bet.id} className="shadow-sm">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-medium">
-                              {bet.gameDetails.homeTeam} vs {bet.gameDetails.awayTeam}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {bet.gameDetails.league} • {formatDate(bet.placedAt)}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Bet: {bet.betOn.replace('_', ' ').toUpperCase()} • 
-                              Stake: {formatCurrency(bet.stake)} • 
-                              Odds: {bet.odds}
-                            </div>
-                          </div>
-                          
-                          <div className="text-right">
-                            <div className={`font-semibold ${
-                              bet.status === 'won' ? 'text-success' : 
-                              bet.status === 'lost' ? 'text-destructive' : 
-                              'text-muted-foreground'
-                            }`}>
-                              {bet.status.toUpperCase()}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {formatCurrency(bet.potentialWinnings)}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-                
-                {userBets.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No betting history found for this user.
-                  </div>
-                )}
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Betting History</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {userBets.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Stake</TableHead>
+                            <TableHead>Odds</TableHead>
+                            <TableHead>Potential Winnings</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {userBets.map((bet) => (
+                            <TableRow key={bet.id}>
+                              <TableCell>{formatDate(bet.placedAt)}</TableCell>
+                              <TableCell>{formatCurrency(bet.stake)}</TableCell>
+                              <TableCell>{bet.odds}</TableCell>
+                              <TableCell>{formatCurrency(bet.potentialWinnings)}</TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={bet.status === 'won' ? 'default' : bet.status === 'lost' ? 'destructive' : 'secondary'}
+                                >
+                                  {bet.status}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No betting history found for this user.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      )}
     </div>
   );
 }; 

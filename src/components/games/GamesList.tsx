@@ -1,46 +1,41 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { GameCard } from './GameCard';
-import { Calendar, Trophy, Filter } from 'lucide-react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
-interface Team {
-  id: number;
-  name: string;
-  logo: string;
-}
-
-interface League {
-  id: number;
-  name: string;
-}
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { GameCard } from './GameCard';
 
 interface Game {
   id: number;
-  homeTeam: Team;
-  awayTeam: Team;
+  homeTeam: {
+    id: number;
+    name: string;
+    logo: string;
+  };
+  awayTeam: {
+    id: number;
+    name: string;
+    logo: string;
+  };
   league: string;
   kickOffTime: string;
-  odds: { home: number; draw: number; away: number };
+  odds: {
+    home: number;
+    draw: number;
+    away: number;
+  };
   status: string;
   confidence: string;
 }
 
 export const GamesList: React.FC = () => {
-  const [games, setGames] = useState<Game[]>([]);
-  const [leagues, setLeagues] = useState<string[]>(['all']);
   const [selectedLeague, setSelectedLeague] = useState<string>('all');
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchGamesAndLeagues();
-  }, []);
-
-  const fetchGamesAndLeagues = async () => {
-    try {
-      // Fetch games with team and league information
+  // Use React Query for data fetching with caching
+  const { data: gamesData, isLoading } = useQuery({
+    queryKey: ['games'],
+    queryFn: async () => {
       const { data: gamesData, error: gamesError } = await supabase
         .from('games')
         .select(`
@@ -60,7 +55,7 @@ export const GamesList: React.FC = () => {
 
       if (gamesError) {
         console.error('Error fetching games:', gamesError);
-        return;
+        return [];
       }
 
       // Transform data to match component interface
@@ -87,35 +82,30 @@ export const GamesList: React.FC = () => {
         confidence: game.confidence
       })) || [];
 
-      setGames(transformedGames);
+      return transformedGames;
+    },
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false
+  });
 
-      // Get unique leagues
-      const uniqueLeagues = Array.from(new Set(transformedGames.map(game => game.league)));
-      setLeagues(['all', ...uniqueLeagues]);
+  // Get unique leagues from cached data
+  const leagues = React.useMemo(() => {
+    if (!gamesData) return ['all'];
+    const uniqueLeagues = Array.from(new Set(gamesData.map(game => game.league)));
+    return ['all', ...uniqueLeagues];
+  }, [gamesData]);
 
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const filteredGames = selectedLeague === 'all' 
-    ? games 
-    : games.filter(game => game.league === selectedLeague);
-
-  const getConfidenceBadge = (confidence: string) => {
-    const variants = {
-      'very-high': { variant: 'default' as const, text: '🔥 VERY HIGH', className: 'bg-gradient-success' },
-      'high': { variant: 'default' as const, text: '⭐ HIGH', className: 'bg-success' },
-      'medium': { variant: 'secondary' as const, text: '📊 MEDIUM', className: '' }
-    };
-    return variants[confidence as keyof typeof variants] || variants.medium;
-  };
+  // Filter games based on selected league
+  const filteredGames = React.useMemo(() => {
+    if (!gamesData) return [];
+    return selectedLeague === 'all' 
+      ? gamesData 
+      : gamesData.filter(game => game.league === selectedLeague);
+  }, [gamesData, selectedLeague]);
 
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6">
         <Card className="shadow-betting">
           <CardContent className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -127,57 +117,52 @@ export const GamesList: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       <Card className="shadow-betting">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Trophy className="h-5 w-5 text-primary" />
-            <span>Today's Sure Odds</span>
-            <Badge variant="default" className="bg-gradient-primary">
-              {filteredGames.length} Matches
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-2 mb-4">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Filter by league:</span>
-            <div className="flex flex-wrap gap-2">
-              {leagues.map((league) => (
-                <Button
-                  key={league}
-                  variant={selectedLeague === league ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedLeague(league)}
-                  className="text-xs"
-                >
-                  {league === 'all' ? 'All Leagues' : league}
-                </Button>
-              ))}
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl font-bold">Today's Games</CardTitle>
+              <p className="text-muted-foreground">
+                Place your bets on upcoming matches
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Select value={selectedLeague} onValueChange={setSelectedLeague}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by league" />
+                </SelectTrigger>
+                <SelectContent>
+                  {leagues.map((league) => (
+                    <SelectItem key={league} value={league}>
+                      {league === 'all' ? 'All Leagues' : league}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
+        </CardHeader>
+        <CardContent>
+          {filteredGames.length > 0 ? (
+            <div className="grid gap-6">
+              {filteredGames.map((game) => (
+                <GameCard key={game.id} game={game} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-4">⚽</div>
+              <h3 className="text-lg font-semibold mb-2">No games available</h3>
+              <p className="text-muted-foreground">
+                {selectedLeague === 'all' 
+                  ? 'No upcoming games at the moment.' 
+                  : `No games found for ${selectedLeague}.`}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      <div className="grid gap-4">
-        {filteredGames.map((game, index) => (
-          <div key={game.id} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
-            <GameCard game={game} />
-          </div>
-        ))}
-      </div>
-
-      {filteredGames.length === 0 && (
-        <Card className="shadow-card">
-          <CardContent className="text-center py-12">
-            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No games found</h3>
-            <p className="text-muted-foreground">
-              No matches available for the selected league today.
-            </p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

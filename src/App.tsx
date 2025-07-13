@@ -17,12 +17,8 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate initialization time and check for critical environment variables
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    // Remove artificial delay for better performance
+    setIsLoading(false);
   }, []);
 
   if (isLoading) {
