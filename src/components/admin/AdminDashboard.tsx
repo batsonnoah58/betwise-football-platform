@@ -113,32 +113,33 @@ export const AdminDashboard: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-primary/5">
       <Header />
       
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-4 sm:space-y-0">
           <div>
-            <h1 className="text-3xl font-bold text-primary flex items-center space-x-2">
-              <Settings className="h-8 w-8" />
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary flex items-center space-x-2">
+              <Settings className="h-6 w-6 sm:h-8 sm:w-8" />
               <span>Admin Dashboard</span>
             </h1>
-            <p className="text-muted-foreground mt-1">Manage your BetWise platform</p>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage your BetWise platform</p>
           </div>
-          <Badge variant="default" className="bg-gradient-primary">
+          <Badge variant="default" className="bg-gradient-primary w-fit">
             Administrator
           </Badge>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex space-x-1 mb-6 bg-muted/50 p-1 rounded-lg w-fit">
+        <div className="flex flex-wrap gap-1 mb-6 bg-muted/50 p-1 rounded-lg w-full sm:w-fit overflow-x-auto">
           {tabs.map((tab) => (
             <Button
               key={tab.id}
               variant={activeTab === tab.id ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setActiveTab(tab.id as any)}
-              className="flex items-center space-x-2"
+              className="flex items-center space-x-2 whitespace-nowrap focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <tab.icon className="h-4 w-4" />
-              <span>{tab.label}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
+              <span className="sm:hidden">{tab.label.charAt(0)}</span>
             </Button>
           ))}
         </div>
@@ -146,55 +147,55 @@ export const AdminDashboard: React.FC = () => {
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-fade-in">
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <Card className="shadow-betting">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-                      <p className="text-2xl font-bold mt-1">{stats.totalUsers.toLocaleString()}</p>
-                      <p className="text-sm text-success mt-1">+12% from last week</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Users</p>
+                      <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{stats.totalUsers.toLocaleString()}</p>
+                      <p className="text-xs sm:text-sm text-success mt-1">+12% from last week</p>
                     </div>
-                    <Users className="h-8 w-8 text-blue-600" />
+                    <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0 ml-2" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="shadow-betting">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Active Games</p>
-                      <p className="text-2xl font-bold mt-1">{stats.activeGames}</p>
-                      <p className="text-sm text-success mt-1">+3 new today</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground">Active Games</p>
+                      <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{stats.activeGames}</p>
+                      <p className="text-xs sm:text-sm text-success mt-1">+3 new today</p>
                     </div>
-                    <Trophy className="h-8 w-8 text-green-600" />
+                    <Trophy className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 flex-shrink-0 ml-2" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="shadow-betting">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Daily Revenue</p>
-                      <p className="text-2xl font-bold mt-1">{formatCurrency(stats.dailyRevenue)}</p>
-                      <p className="text-sm text-success mt-1">+8% from yesterday</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground">Daily Revenue</p>
+                      <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{formatCurrency(stats.dailyRevenue)}</p>
+                      <p className="text-xs sm:text-sm text-success mt-1">+8% from yesterday</p>
                     </div>
-                    <DollarSign className="h-8 w-8 text-primary" />
+                    <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-primary flex-shrink-0 ml-2" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="shadow-betting">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Today's Bets</p>
-                      <p className="text-2xl font-bold mt-1">{stats.totalBetsToday}</p>
-                      <p className="text-sm text-success mt-1">+15% from yesterday</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground">Today's Bets</p>
+                      <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{stats.totalBetsToday}</p>
+                      <p className="text-xs sm:text-sm text-success mt-1">+15% from yesterday</p>
                     </div>
-                    <BarChart3 className="h-8 w-8 text-purple-600" />
+                    <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 flex-shrink-0 ml-2" />
                   </div>
                 </CardContent>
               </Card>
@@ -202,39 +203,39 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Quick Actions */}
             <Card className="shadow-betting">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Plus className="h-5 w-5 text-primary" />
+              <CardHeader className="px-4 sm:px-6">
+                <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                  <Plus className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   <span>Quick Actions</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <CardContent className="px-4 sm:px-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <Button 
                     variant="outline" 
-                    className="h-20 flex flex-col items-center justify-center space-y-2"
+                    className="h-16 sm:h-20 flex flex-col items-center justify-center space-y-1 sm:space-y-2 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     onClick={() => setActiveTab('games')}
                   >
-                    <Plus className="h-6 w-6 text-primary" />
-                    <span>Add New Game</span>
+                    <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                    <span className="text-xs sm:text-sm">Add New Game</span>
                   </Button>
                   
                   <Button 
                     variant="outline" 
-                    className="h-20 flex flex-col items-center justify-center space-y-2"
+                    className="h-16 sm:h-20 flex flex-col items-center justify-center space-y-1 sm:space-y-2 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     onClick={() => setActiveTab('results')}
                   >
-                    <CheckCircle className="h-6 w-6 text-success" />
-                    <span>Update Results</span>
+                    <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-success" />
+                    <span className="text-xs sm:text-sm">Update Results</span>
                   </Button>
                   
                   <Button 
                     variant="outline" 
-                    className="h-20 flex flex-col items-center justify-center space-y-2"
+                    className="h-16 sm:h-20 flex flex-col items-center justify-center space-y-1 sm:space-y-2 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:col-span-2 lg:col-span-1"
                     onClick={() => setActiveTab('users')}
                   >
-                    <Users className="h-6 w-6 text-blue-600" />
-                    <span>Manage Users</span>
+                    <Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                    <span className="text-xs sm:text-sm">Manage Users</span>
                   </Button>
                 </div>
               </CardContent>

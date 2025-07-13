@@ -127,23 +127,23 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
 
   return (
     <Card className="shadow-betting hover:shadow-glow transition-all duration-300 animate-fade-in overflow-hidden">
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-4 px-4 sm:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-gradient-primary rounded flex items-center justify-center">
-              <Trophy className="h-3 w-3 text-white" />
+            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-primary rounded flex items-center justify-center">
+              <Trophy className="h-2 w-2 sm:h-3 sm:w-3 text-white" />
             </div>
-            <CardTitle className="text-lg">{game.league}</CardTitle>
+            <CardTitle className="text-base sm:text-lg">{game.league}</CardTitle>
           </div>
-          <Badge className={confidence.className}>
+          <Badge className={`${confidence.className} text-xs sm:text-sm`}>
             {confidence.text}
           </Badge>
         </div>
         
         {/* Match Info */}
         <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
+          <div className="flex items-center space-x-2 text-xs sm:text-sm text-muted-foreground">
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
             <span>{formatDate(game.kickOffTime)}</span>
           </div>
           <div className="text-xs text-muted-foreground">
@@ -152,30 +152,30 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
         {/* Teams */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3 flex-1">
-            <div className="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center text-white font-bold text-lg">
+          <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-primary rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-lg flex-shrink-0">
               {game.homeTeam.logo}
             </div>
-            <div className="flex-1">
-              <div className="font-semibold text-foreground">{game.homeTeam.name}</div>
-              <div className="text-sm text-muted-foreground">Home Team</div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-foreground text-sm sm:text-base truncate">{game.homeTeam.name}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Home Team</div>
             </div>
           </div>
           
-          <div className="text-center mx-4">
-            <div className="text-2xl font-bold text-primary">VS</div>
+          <div className="text-center mx-2 sm:mx-4 flex-shrink-0">
+            <div className="text-lg sm:text-2xl font-bold text-primary">VS</div>
             <div className="text-xs text-muted-foreground">Match</div>
           </div>
           
-          <div className="flex items-center space-x-3 flex-1 justify-end">
-            <div className="flex-1 text-right">
-              <div className="font-semibold text-foreground">{game.awayTeam.name}</div>
-              <div className="text-sm text-muted-foreground">Away Team</div>
+          <div className="flex items-center space-x-2 sm:space-x-3 flex-1 justify-end min-w-0">
+            <div className="flex-1 text-right min-w-0">
+              <div className="font-semibold text-foreground text-sm sm:text-base truncate">{game.awayTeam.name}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Away Team</div>
             </div>
-            <div className="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center text-white font-bold text-lg">
+            <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-primary rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-lg flex-shrink-0">
               {game.awayTeam.logo}
             </div>
           </div>
@@ -184,14 +184,14 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
         {/* Odds and Betting */}
         <div className="space-y-4">
           <div className="text-center">
-            <Label className="text-sm font-medium text-muted-foreground">Place Your Bets</Label>
+            <Label className="text-xs sm:text-sm font-medium text-muted-foreground">Place Your Bets</Label>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {/* Home Win */}
-            <div className="space-y-3">
-              <div className="text-center p-3 bg-primary/5 rounded-lg border border-primary/10">
-                <div className="text-lg font-bold text-primary">{game.odds.home}</div>
+            <div className="space-y-2 sm:space-y-3">
+              <div className="text-center p-2 sm:p-3 bg-primary/5 rounded-lg border border-primary/10">
+                <div className="text-base sm:text-lg font-bold text-primary">{game.odds.home}</div>
                 <div className="text-xs text-muted-foreground">Home Win</div>
               </div>
               <div className="space-y-2">
@@ -200,11 +200,11 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
                   placeholder="Stake amount"
                   value={stakes.home}
                   onChange={(e) => setStakes(prev => ({ ...prev, home: e.target.value }))}
-                  className="text-center"
+                  className="text-center text-sm sm:text-base focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 />
                 <Button
                   variant="betting"
-                  className="w-full"
+                  className="w-full text-xs sm:text-sm h-8 sm:h-9 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   onClick={() => handleBet('home')}
                   disabled={!stakes.home || bettingOn === 'home'}
                 >
@@ -214,9 +214,9 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
             </div>
 
             {/* Draw */}
-            <div className="space-y-3">
-              <div className="text-center p-3 bg-warning/5 rounded-lg border border-warning/10">
-                <div className="text-lg font-bold text-warning">{game.odds.draw}</div>
+            <div className="space-y-2 sm:space-y-3">
+              <div className="text-center p-2 sm:p-3 bg-warning/5 rounded-lg border border-warning/10">
+                <div className="text-base sm:text-lg font-bold text-warning">{game.odds.draw}</div>
                 <div className="text-xs text-muted-foreground">Draw</div>
               </div>
               <div className="space-y-2">
@@ -225,11 +225,11 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
                   placeholder="Stake amount"
                   value={stakes.draw}
                   onChange={(e) => setStakes(prev => ({ ...prev, draw: e.target.value }))}
-                  className="text-center"
+                  className="text-center text-sm sm:text-base focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 />
                 <Button
                   variant="betting"
-                  className="w-full"
+                  className="w-full text-xs sm:text-sm h-8 sm:h-9 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   onClick={() => handleBet('draw')}
                   disabled={!stakes.draw || bettingOn === 'draw'}
                 >
@@ -239,9 +239,9 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
             </div>
 
             {/* Away Win */}
-            <div className="space-y-3">
-              <div className="text-center p-3 bg-primary/5 rounded-lg border border-primary/10">
-                <div className="text-lg font-bold text-primary">{game.odds.away}</div>
+            <div className="space-y-2 sm:space-y-3">
+              <div className="text-center p-2 sm:p-3 bg-primary/5 rounded-lg border border-primary/10">
+                <div className="text-base sm:text-lg font-bold text-primary">{game.odds.away}</div>
                 <div className="text-xs text-muted-foreground">Away Win</div>
               </div>
               <div className="space-y-2">
@@ -250,11 +250,11 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
                   placeholder="Stake amount"
                   value={stakes.away}
                   onChange={(e) => setStakes(prev => ({ ...prev, away: e.target.value }))}
-                  className="text-center"
+                  className="text-center text-sm sm:text-base focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 />
                 <Button
                   variant="betting"
-                  className="w-full"
+                  className="w-full text-xs sm:text-sm h-8 sm:h-9 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   onClick={() => handleBet('away')}
                   disabled={!stakes.away || bettingOn === 'away'}
                 >
@@ -268,8 +268,8 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
         {/* Potential Winnings Info */}
         <div className="text-center p-3 bg-success/5 rounded-lg border border-success/10">
           <div className="flex items-center justify-center space-x-2">
-            <TrendingUp className="h-4 w-4 text-success" />
-            <span className="text-sm font-medium text-success">Potential Winnings</span>
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
+            <span className="text-xs sm:text-sm font-medium text-success">Potential Winnings</span>
           </div>
           <div className="text-xs text-muted-foreground mt-1">
             Enter stake amount to see potential winnings

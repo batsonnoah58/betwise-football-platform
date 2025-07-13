@@ -69,35 +69,35 @@ export const DailySubscriptionModal: React.FC<DailySubscriptionModalProps> = ({ 
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-center text-2xl font-bold text-primary">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="px-4 sm:px-6">
+          <DialogTitle className="text-center text-xl sm:text-2xl font-bold text-primary">
             🏆 Daily Sure Odds Access
           </DialogTitle>
-          <DialogDescription className="text-center">
+          <DialogDescription className="text-center text-sm">
             Unlock today's premium betting tips and odds
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6 px-4 sm:px-6">
           <div className="text-center">
-            <div className="text-4xl font-bold text-primary mb-2">KES 500</div>
-            <div className="text-muted-foreground">Per Day Access</div>
+            <div className="text-3xl sm:text-4xl font-bold text-primary mb-2">KES 500</div>
+            <div className="text-sm sm:text-base text-muted-foreground">Per Day Access</div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {features.map((feature, index) => (
               <div key={index} className="flex items-center space-x-2 p-3 bg-primary/5 rounded-lg">
-                <feature.icon className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium">{feature.text}</span>
+                <feature.icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium">{feature.text}</span>
               </div>
             ))}
           </div>
 
-          <div className="bg-gradient-to-r from-primary/10 to-accent/10 p-4 rounded-lg border border-primary/20">
+          <div className="bg-gradient-to-r from-primary/10 to-accent/10 p-3 sm:p-4 rounded-lg border border-primary/20">
             <div className="text-center">
-              <div className="font-semibold text-primary mb-1">Today's Special</div>
-              <div className="text-sm text-muted-foreground">
+              <div className="font-semibold text-primary mb-1 text-sm sm:text-base">Today's Special</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">
                 5+ High-confidence matches with detailed analysis
               </div>
             </div>
@@ -110,7 +110,7 @@ export const DailySubscriptionModal: React.FC<DailySubscriptionModalProps> = ({ 
               placeholder="0700000000 or 254700000000"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary text-sm sm:text-base"
             />
             <div className="text-xs text-muted-foreground">
               Enter your M-Pesa registered phone number (any format accepted)
@@ -122,34 +122,34 @@ export const DailySubscriptionModal: React.FC<DailySubscriptionModalProps> = ({ 
 
           {checkoutUrl ? (
             <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="text-green-800 text-sm">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
+                <div className="text-green-800 text-xs sm:text-sm">
                   Subscription initiated successfully! Click the button below to complete your payment on PayPal.
                 </div>
               </div>
-              <div className="flex space-x-3">
-                <Button variant="outline" onClick={onClose} className="flex-1">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <Button variant="outline" onClick={onClose} className="flex-1 text-sm sm:text-base">
                   Close
                 </Button>
                 <Button
                   onClick={handleCheckoutRedirect}
-                  className="flex-1"
+                  className="flex-1 text-sm sm:text-base focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   variant="gradient"
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
+                  <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                   Complete Payment
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="flex space-x-3">
-              <Button variant="outline" onClick={onClose} className="flex-1">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <Button variant="outline" onClick={onClose} className="flex-1 text-sm sm:text-base">
                 Maybe Later
               </Button>
               <Button
                 onClick={handlePayment}
                 disabled={!user || !phoneNumber || isProcessing}
-                className="flex-1"
+                className="flex-1 text-sm sm:text-base focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 variant="gradient"
               >
                 {isProcessing ? 'Processing...' : 'Unlock for KES 500'}

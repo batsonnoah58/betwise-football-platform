@@ -18,13 +18,13 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-card/80 backdrop-blur-sm border-b border-border/50 shadow-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
+    <header className="bg-card/80 backdrop-blur-sm border-b border-border/50 shadow-sm sticky top-0 z-50 min-h-[64px]">
+      <div className="container mx-auto px-4 py-3 sm:py-4">
+        <div className="flex items-center justify-between min-h-[48px]">
           {/* Logo and Brand */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 min-w-[40px]">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center text-white font-bold text-sm">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-primary rounded-lg flex items-center justify-center text-white font-bold text-base sm:text-lg">
                 ⚽
               </div>
               <div className="hidden sm:block">
@@ -72,7 +72,7 @@ export const Header: React.FC = () => {
           <div className="md:hidden">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="p-2">
+                <Button variant="ghost" size="sm" className="p-2 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" aria-label="Open mobile menu">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -125,7 +125,7 @@ export const Header: React.FC = () => {
                   <div className="space-y-2">
                     <Button 
                       variant="outline" 
-                      className="w-full justify-start"
+                      className="w-full justify-start focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                       onClick={() => {
                         // Add navigation logic here
                         setIsMobileMenuOpen(false);
@@ -137,7 +137,7 @@ export const Header: React.FC = () => {
                     
                     <Button 
                       variant="outline" 
-                      className="w-full justify-start"
+                      className="w-full justify-start focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                       onClick={() => {
                         // Add navigation logic here
                         setIsMobileMenuOpen(false);
@@ -152,7 +152,7 @@ export const Header: React.FC = () => {
                   <div className="pt-4 border-t border-border">
                     <Button 
                       variant="destructive" 
-                      className="w-full justify-start"
+                      className="w-full justify-start focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                       onClick={() => {
                         logout();
                         setIsMobileMenuOpen(false);

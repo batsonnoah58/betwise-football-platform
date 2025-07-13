@@ -40,10 +40,10 @@ export const GamesList: React.FC = () => {
         .from('games')
         .select(`
           id,
-          kick_off_time,
-          odds_home,
+          match_date,
+          odds_home_win,
           odds_draw,
-          odds_away,
+          odds_away_win,
           status,
           confidence,
           home_team:teams!games_home_team_id_fkey(id, name, logo),
@@ -51,7 +51,7 @@ export const GamesList: React.FC = () => {
           league:leagues(name)
         `)
         .eq('status', 'upcoming')
-        .order('kick_off_time', { ascending: true });
+        .order('match_date', { ascending: true });
 
       if (gamesError) {
         console.error('Error fetching games:', gamesError);
@@ -72,11 +72,11 @@ export const GamesList: React.FC = () => {
           logo: game.away_team.logo || '⚽'
         },
         league: game.league.name,
-        kickOffTime: game.kick_off_time,
+        kickOffTime: game.match_date,
         odds: {
-          home: Number(game.odds_home),
+          home: Number(game.odds_home_win),
           draw: Number(game.odds_draw),
-          away: Number(game.odds_away)
+          away: Number(game.odds_away_win)
         },
         status: game.status,
         confidence: game.confidence
@@ -117,24 +117,24 @@ export const GamesList: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card className="shadow-betting">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div>
-              <CardTitle className="text-2xl font-bold">Today's Games</CardTitle>
-              <p className="text-muted-foreground">
+              <CardTitle className="text-xl sm:text-2xl font-bold">Today's Games</CardTitle>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Place your bets on upcoming matches
               </p>
             </div>
             <div className="flex items-center space-x-4">
               <Select value={selectedLeague} onValueChange={setSelectedLeague}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48 text-sm sm:text-base focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
                   <SelectValue placeholder="Filter by league" />
                 </SelectTrigger>
                 <SelectContent>
                   {leagues.map((league) => (
-                    <SelectItem key={league} value={league}>
+                    <SelectItem key={league} value={league} className="text-sm sm:text-base">
                       {league === 'all' ? 'All Leagues' : league}
                     </SelectItem>
                   ))}
@@ -143,18 +143,18 @@ export const GamesList: React.FC = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           {filteredGames.length > 0 ? (
-            <div className="grid gap-6">
+            <div className="grid gap-4 sm:gap-6">
               {filteredGames.map((game) => (
                 <GameCard key={game.id} game={game} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <div className="text-4xl mb-4">⚽</div>
-              <h3 className="text-lg font-semibold mb-2">No games available</h3>
-              <p className="text-muted-foreground">
+            <div className="text-center py-8 sm:py-12">
+              <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">⚽</div>
+              <h3 className="text-base sm:text-lg font-semibold mb-2">No games available</h3>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 {selectedLeague === 'all' 
                   ? 'No upcoming games at the moment.' 
                   : `No games found for ${selectedLeague}.`}
