@@ -46,7 +46,7 @@ export const Dashboard: React.FC = () => {
         <DailySubscriptionModal onClose={() => setShowSubscriptionModal(false)} />
       )}
       
-      <DebugInfo />
+      {/* <DebugInfo /> */}
     </div>
   );
 };
