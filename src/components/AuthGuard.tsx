@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { LoginForm } from './auth/LoginForm';
 import { SignupForm } from './auth/SignupForm';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,29 +33,40 @@ export const useAuth = () => {
   return context;
 };
 
+// Cache for user profiles to avoid repeated database calls
+const userProfileCache = new Map<string, User>();
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = useCallback(async (userId: string): Promise<User | null> => {
+    // Check cache first
+    if (userProfileCache.has(userId)) {
+      return userProfileCache.get(userId) || null;
+    }
+
     try {
-      // Single query to get profile and roles
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      // Parallel queries for better performance
+      const [profileResult, rolesResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single(),
+        supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+      ]);
 
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-
+      const profile = profileResult.data;
+      const roles = rolesResult.data;
       const isAdmin = roles?.some(r => r.role === 'admin') || false;
 
       if (profile) {
-        return {
+        const userProfile = {
           id: profile.id,
           email: session?.user?.email || '',
           fullName: profile.username || profile.email || '',
@@ -63,46 +74,84 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin,
           dailyAccessGrantedUntil: profile.daily_access_granted_until
         };
+
+        // Cache the result
+        userProfileCache.set(userId, userProfile);
+        return userProfile;
       }
       return null;
     } catch (error) {
       console.error('Error fetching user profile:', error);
       return null;
     }
-  };
+  }, [session]);
 
   useEffect(() => {
-    // Set up auth state listener
+    let mounted = true;
+
+    // Set up auth state listener with debouncing
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+
         setSession(session);
         
         if (session?.user) {
           const userProfile = await fetchUserProfile(session.user.id);
-          setUser(userProfile);
+          if (mounted) {
+            setUser(userProfile);
+            setIsLoading(false);
+          }
         } else {
-          setUser(null);
+          if (mounted) {
+            setUser(null);
+            setIsLoading(false);
+          }
         }
-        
-        setIsLoading(false);
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        fetchUserProfile(session.user.id).then((userProfile) => {
-          setUser(userProfile);
+    // Check for existing session with timeout
+    const sessionCheck = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+
+        setSession(session);
+        if (session?.user) {
+          const userProfile = await fetchUserProfile(session.user.id);
+          if (mounted) {
+            setUser(userProfile);
+            setIsLoading(false);
+          }
+        } else {
+          if (mounted) {
+            setIsLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error('Session check error:', error);
+        if (mounted) {
           setIsLoading(false);
-        });
-      } else {
+        }
+      }
+    };
+
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (mounted && isLoading) {
         setIsLoading(false);
       }
-    });
+    }, 3000); // 3 second timeout
 
-    return () => subscription.unsubscribe();
-  }, []); // Remove session from dependency array to prevent infinite loop
+    sessionCheck();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      clearTimeout(timeoutId);
+    };
+  }, [fetchUserProfile, isLoading]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -151,12 +200,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    // Clear cache on logout
+    if (user) {
+      userProfileCache.delete(user.id);
+    }
     await supabase.auth.signOut();
   };
 
   const updateWallet = async (amount: number) => {
     if (user) {
       const newBalance = user.walletBalance + amount;
+      
+      // Optimistic update
+      setUser({ ...user, walletBalance: newBalance });
       
       // Update in database
       const { error } = await supabase
@@ -165,8 +221,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', user.id);
 
       if (!error) {
-        // Update local state
-        setUser({ ...user, walletBalance: newBalance });
+        // Update cache
+        userProfileCache.set(user.id, { ...user, walletBalance: newBalance });
         
         // Add transaction record
         await supabase
@@ -177,6 +233,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             amount: Math.abs(amount),
             description: amount > 0 ? 'Wallet deposit' : 'Bet placed'
           });
+      } else {
+        // Revert optimistic update on error
+        setUser({ ...user, walletBalance: user.walletBalance });
       }
     }
   };
@@ -189,6 +248,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const newBalance = user.walletBalance - 500;
       
+      // Optimistic update
+      setUser({ 
+        ...user, 
+        dailyAccessGrantedUntil: tomorrow.toISOString(),
+        walletBalance: newBalance
+      });
+      
       // Update in database
       const { error } = await supabase
         .from('profiles')
@@ -199,8 +265,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', user.id);
 
       if (!error) {
-        // Update local state
-        setUser({ 
+        // Update cache
+        userProfileCache.set(user.id, { 
           ...user, 
           dailyAccessGrantedUntil: tomorrow.toISOString(),
           walletBalance: newBalance
@@ -215,6 +281,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             amount: 500,
             description: 'Daily subscription fee'
           });
+      } else {
+        // Revert optimistic update on error
+        setUser({ ...user, walletBalance: user.walletBalance });
       }
     }
   };
@@ -224,6 +293,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return new Date() < new Date(user.dailyAccessGrantedUntil);
   };
 
+  // Show loading only for a short time
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5">

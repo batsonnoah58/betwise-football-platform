@@ -3,15 +3,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import { PaymentCallback } from "./pages/PaymentCallback";
-import { PaymentSimulate } from "./pages/PaymentSimulate";
 import { LoadingSpinner } from "./components/LoadingSpinner";
-import { useState, useEffect, Suspense } from "react";
 import { AuthProvider } from "./components/AuthGuard";
-import React from "react";
-import { preloadImages } from "./lib/image-utils";
+import React, { Suspense } from "react";
+import { initializePerformanceOptimizations } from "./lib/performance-utils";
 
 // Create a QueryClient with optimized settings
 const queryClient = new QueryClient({
@@ -31,34 +26,14 @@ const LazyNotFound = React.lazy(() => import("./pages/NotFound"));
 const LazyPaymentCallback = React.lazy(() => import("./pages/PaymentCallback").then(module => ({ default: module.PaymentCallback })));
 const LazyPaymentSimulate = React.lazy(() => import("./pages/PaymentSimulate").then(module => ({ default: module.PaymentSimulate })));
 
-// Critical images to preload (add actual image URLs when available)
-const criticalImages: string[] = [
-  // Add critical image URLs here when actual images are used
-  // Example: '/images/logo.webp', '/images/hero-bg.webp'
-];
-
 const App = () => {
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Preload critical images
-    if (criticalImages.length > 0) {
-      preloadImages(criticalImages).catch(console.error);
-    }
-
-    // Register PWA manifest
-    registerPWA();
-
-    // Minimal initialization check
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 100); // Reduced from 1000ms to 100ms
-
-    return () => clearTimeout(timer);
+  // Initialize performance optimizations
+  React.useEffect(() => {
+    initializePerformanceOptimizations();
   }, []);
 
   // Register PWA manifest and meta tags
-  const registerPWA = () => {
+  React.useEffect(() => {
     // Add manifest link if not already present
     if (!document.querySelector('link[rel="manifest"]')) {
       const manifestLink = document.createElement('link');
@@ -102,31 +77,7 @@ const App = () => {
         document.head.appendChild(link);
       }
     });
-  };
-
-  // Preload critical resources
-  useEffect(() => {
-    // Preload critical fonts if using custom fonts
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'font';
-    link.type = 'font/woff2';
-    link.crossOrigin = 'anonymous';
-    // Add font URL when using custom fonts
-    // link.href = '/fonts/inter-var.woff2';
-    // document.head.appendChild(link);
-
-    // Preload critical CSS
-    const criticalCSS = document.createElement('link');
-    criticalCSS.rel = 'preload';
-    criticalCSS.as = 'style';
-    criticalCSS.href = '/src/index.css';
-    document.head.appendChild(criticalCSS);
   }, []);
-
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
 
   return (
     <QueryClientProvider client={queryClient}>
