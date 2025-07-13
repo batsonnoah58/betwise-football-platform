@@ -40,7 +40,17 @@ exports.handler = async (event, context) => {
         consumer_secret: consumerSecret,
       }),
     });
-    const tokenData = await tokenRes.json();
+    const tokenText = await tokenRes.text();
+    console.log('PesaPal Auth/RequestToken raw response:', tokenText);
+    let tokenData;
+    try {
+      tokenData = JSON.parse(tokenText);
+    } catch (parseErr) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ success: false, error: 'Invalid JSON from PesaPal Auth/RequestToken', raw: tokenText }),
+      };
+    }
     if (!tokenRes.ok || !tokenData.token) {
       return {
         statusCode: 500,
