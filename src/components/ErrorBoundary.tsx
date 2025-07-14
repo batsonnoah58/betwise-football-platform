@@ -7,6 +7,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  errorInfo?: ErrorInfo;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -19,7 +20,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Enhanced logging
     console.error('Uncaught error:', error, errorInfo);
+    // Store errorInfo in state for UI display
+    this.setState({ errorInfo });
   }
 
   public render() {
@@ -43,6 +47,8 @@ export class ErrorBoundary extends Component<Props, State> {
                     </summary>
                     <pre className="text-xs text-gray-600 mt-2 overflow-auto">
                       {this.state.error.toString()}
+                      {this.state.error.stack && (`\nStack:\n${this.state.error.stack}`)}
+                      {this.state.errorInfo && this.state.errorInfo.componentStack && (`\nComponent Stack:\n${this.state.errorInfo.componentStack}`)}
                     </pre>
                   </details>
                 )}
