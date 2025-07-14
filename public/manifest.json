@@ -23,47 +23,5 @@
       "type": "image/png",
       "purpose": "maskable any"
     }
-  ],
-  "shortcuts": [
-    {
-      "name": "Today's Games",
-      "short_name": "Games",
-      "description": "View today's betting games",
-      "url": "/",
-      "icons": [
-        {
-          "src": "/icons/games-shortcut.png",
-          "sizes": "96x96"
-        }
-      ]
-    },
-    {
-      "name": "My Wallet",
-      "short_name": "Wallet",
-      "description": "Manage your betting wallet",
-      "url": "/",
-      "icons": [
-        {
-          "src": "/icons/wallet-shortcut.png",
-          "sizes": "96x96"
-        }
-      ]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshots/desktop-1.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "BetWise Dashboard"
-    },
-    {
-      "src": "/screenshots/mobile-1.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Mobile Dashboard"
-    }
   ]
 } 
