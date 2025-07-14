@@ -37,11 +37,13 @@ export const useAuth = () => {
 const userProfileCache = new Map<string, User>();
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  console.log('[AuthProvider] Rendered');
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchUserProfile = useCallback(async (userId: string): Promise<User | null> => {
+    console.log('[AuthProvider] fetchUserProfile called', userId);
     // Check cache first
     if (userProfileCache.has(userId)) {
       return userProfileCache.get(userId) || null;
@@ -87,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [session]);
 
   useEffect(() => {
+    console.log('[AuthProvider] useEffect running');
     let mounted = true;
 
     // Set up auth state listener with debouncing
