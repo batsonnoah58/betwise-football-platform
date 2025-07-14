@@ -81,20 +81,11 @@ const App = () => {
   }, []);
 
   return (
-    // <QueryClientProvider client={queryClient}>
-    //   <TooltipProvider>
-    //     <Toaster />
-    //     <Sonner />
-    //     <AuthProvider>
-    //       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-    //         <h1>App Loaded (Router Temporarily Disabled)</h1>
-    //       </div>
-    //     </AuthProvider>
-    //   </TooltipProvider>
-    // </QueryClientProvider>
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <h1>Hello World</h1>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <h1>Hello World</h1>
+      </div>
+    </QueryClientProvider>
   );
 };
 
