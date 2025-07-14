@@ -85,9 +85,11 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <h1>Hello World</h1>
-        </div>
+        <AuthProvider>
+          <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <h1>Hello World</h1>
+          </div>
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
