@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from './auth/LoginForm';
 import { SignupForm } from './auth/SignupForm';
-import { supabase } from '@/integrations/supabase/client';
-import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
-interface User {
+// User type
+export interface User {
   id: string;
   email: string;
   fullName: string;
@@ -17,9 +17,9 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (fullName: string, email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  updateWallet: (amount: number) => void;
-  grantDailyAccess: () => void;
+  logout: () => Promise<void>;
+  updateWallet: (amount: number) => Promise<void>;
+  grantDailyAccess: () => Promise<void>;
   hasDailyAccess: () => boolean;
 }
 
@@ -27,286 +27,137 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
 
-// Cache for user profiles to avoid repeated database calls
-const userProfileCache = new Map<string, User>();
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('[AuthProvider] Rendered');
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch user profile from DB
   const fetchUserProfile = useCallback(async (userId: string): Promise<User | null> => {
-    console.log('[AuthProvider] fetchUserProfile called', userId);
     try {
-      // Parallel queries for better performance
-      console.log('[AuthProvider] fetching profile and roles from Supabase');
-      const [profileResult, rolesResult] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single(),
-        supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId)
-      ]);
-      console.log('[AuthProvider] profileResult:', profileResult);
-      console.log('[AuthProvider] rolesResult:', rolesResult);
-      const profile = profileResult.data;
-      const roles = rolesResult.data;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
       const isAdmin = roles?.some(r => r.role === 'admin') || false;
       if (profile) {
-        const userProfile = {
+        return {
           id: profile.id,
-          email: session?.user?.email || '',
+          email: profile.email || '',
           fullName: profile.username || profile.email || '',
           walletBalance: Number(profile.wallet_balance),
           isAdmin,
-          dailyAccessGrantedUntil: profile.daily_access_granted_until
+          dailyAccessGrantedUntil: profile.daily_access_granted_until,
         };
-        // Cache the result
-        userProfileCache.set(userId, userProfile);
-        return userProfile;
       }
-      console.log('[AuthProvider] No profile found for user', userId);
       return null;
     } catch (error) {
-      console.error('[AuthProvider] Error in fetchUserProfile:', error);
+      console.error('Error fetching user profile:', error);
       return null;
     }
-  }, [session]);
+  }, []);
 
+  // Restore session on mount
   useEffect(() => {
-    console.log('[AuthProvider] useEffect running');
     let mounted = true;
-    // Set up auth state listener with debouncing
-    try {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          if (!mounted) return;
-          setSession(session);
-          if (session?.user) {
-            console.log('[AuthProvider] Auth state change: user found', session.user.id);
-            const userProfile = await fetchUserProfile(session.user.id);
-            if (mounted) {
-              setUser(userProfile);
-              setIsLoading(false);
-            }
-          } else {
-            if (mounted) {
-              setUser(null);
-              setIsLoading(false);
-            }
-          }
-        }
-      );
-      // Check for existing session with timeout
-      const sessionCheck = async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!mounted) return;
-          setSession(session);
-          if (session?.user) {
-            console.log('[AuthProvider] Session check: user found', session.user.id);
-            const userProfile = await fetchUserProfile(session.user.id);
-            if (mounted) {
-              setUser(userProfile);
-              setIsLoading(false);
-            }
-          } else {
-            if (mounted) {
-              setIsLoading(false);
-            }
-          }
-        } catch (error) {
-          console.error('[AuthProvider] Error in sessionCheck:', error);
-          if (mounted) {
-            setIsLoading(false);
-          }
-        }
-      };
-      // Add timeout to prevent infinite loading
-      const timeoutId = setTimeout(() => {
-        if (mounted && isLoading) {
-          setIsLoading(false);
-        }
-      }, 3000); // 3 second timeout
-      sessionCheck();
-      return () => {
-        mounted = false;
-        subscription.unsubscribe();
-        clearTimeout(timeoutId);
-      };
-    } catch (error) {
-      console.error('[AuthProvider] Error in useEffect setup:', error);
+    const restore = async () => {
+      setIsLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const profile = await fetchUserProfile(session.user.id);
+        if (mounted) setUser(profile);
+      }
       setIsLoading(false);
-    }
-  }, [fetchUserProfile, isLoading]);
+    };
+    restore();
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const profile = await fetchUserProfile(session.user.id);
+        setUser(profile);
+      } else {
+        setUser(null);
+      }
+    });
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchUserProfile]);
 
+  // Login
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) {
-        console.error('Login error:', error.message);
-        return false;
-      }
-      // Set minimal user state immediately for fast UI feedback
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return false;
       if (data?.user) {
-        setUser({
-          id: data.user.id,
-          email: data.user.email || '',
-          fullName: data.user.user_metadata?.full_name || data.user.email || '',
-          walletBalance: 0,
-          isAdmin: false,
-        });
-        // Fetch full profile in background
-        fetchUserProfile(data.user.id).then((profile) => {
-          if (profile) setUser(profile);
-        });
+        const profile = await fetchUserProfile(data.user.id);
+        setUser(profile);
+        return true;
       }
-      return true;
+      return false;
     } catch (error) {
       console.error('Login error:', error);
       return false;
     }
   };
 
+  // Signup
   const signup = async (fullName: string, email: string, password: string): Promise<boolean> => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            full_name: fullName
-          }
-        }
+        options: { data: { full_name: fullName } }
       });
-      if (error) {
-        console.error('Signup error:', error.message);
-        return false;
-      }
-      // Attempt to log in immediately after signup
-      const loginSuccess = await login(email, password);
-      if (!loginSuccess) {
-        return false;
-      }
-      return true;
+      if (error) return false;
+      // Try to login immediately
+      return await login(email, password);
     } catch (error) {
       console.error('Signup error:', error);
       return false;
     }
   };
 
+  // Logout
   const logout = async () => {
-    // Clear cache on logout
-    if (user) {
-      userProfileCache.delete(user.id);
-    }
     await supabase.auth.signOut();
+    setUser(null);
   };
 
+  // Update wallet
   const updateWallet = async (amount: number) => {
-    if (user) {
-      const newBalance = user.walletBalance + amount;
-      
-      // Optimistic update
-      setUser({ ...user, walletBalance: newBalance });
-      
-      // Update in database
-      const { error } = await supabase
-        .from('profiles')
-        .update({ wallet_balance: newBalance })
-        .eq('id', user.id);
-
-      if (!error) {
-        // Update cache
-        userProfileCache.set(user.id, { ...user, walletBalance: newBalance });
-        
-        // Add transaction record
-        await supabase
-          .from('transactions')
-          .insert({
-            user_id: user.id,
-            type: amount > 0 ? 'deposit' : 'bet',
-            amount: Math.abs(amount),
-            description: amount > 0 ? 'Wallet deposit' : 'Bet placed'
-          });
-      } else {
-        // Revert optimistic update on error
-        setUser({ ...user, walletBalance: user.walletBalance });
-      }
-    }
+    if (!user) return;
+    const newBalance = user.walletBalance + amount;
+    await supabase.from('profiles').update({ wallet_balance: newBalance }).eq('id', user.id);
+    setUser({ ...user, walletBalance: newBalance });
   };
 
+  // Grant daily access
   const grantDailyAccess = async () => {
-    if (user) {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
-      
-      const newBalance = user.walletBalance - 500;
-      
-      // Optimistic update
-      setUser({ 
-        ...user, 
-        dailyAccessGrantedUntil: tomorrow.toISOString(),
-        walletBalance: newBalance
-      });
-      
-      // Update in database
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          daily_access_granted_until: tomorrow.toISOString(),
-          wallet_balance: newBalance
-        })
-        .eq('id', user.id);
-
-      if (!error) {
-        // Update cache
-        userProfileCache.set(user.id, { 
-          ...user, 
-          dailyAccessGrantedUntil: tomorrow.toISOString(),
-          walletBalance: newBalance
-        });
-        
-        // Add transaction record
-        await supabase
-          .from('transactions')
-          .insert({
-            user_id: user.id,
-            type: 'subscription',
-            amount: 500,
-            description: 'Daily subscription fee'
-          });
-      } else {
-        // Revert optimistic update on error
-        setUser({ ...user, walletBalance: user.walletBalance });
-      }
-    }
+    if (!user) return;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    await supabase.from('profiles').update({ daily_access_granted_until: tomorrow.toISOString() }).eq('id', user.id);
+    setUser({ ...user, dailyAccessGrantedUntil: tomorrow.toISOString() });
   };
 
-  const hasDailyAccess = (): boolean => {
+  // Check daily access
+  const hasDailyAccess = () => {
     if (!user?.dailyAccessGrantedUntil) return false;
     return new Date() < new Date(user.dailyAccessGrantedUntil);
   };
 
-  // Show loading only for a short time
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5">
@@ -316,15 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      signup, 
-      logout, 
-      updateWallet, 
-      grantDailyAccess, 
-      hasDailyAccess 
-    }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, updateWallet, grantDailyAccess, hasDailyAccess }}>
       {user ? children : <AuthPrompt />}
     </AuthContext.Provider>
   );
@@ -332,7 +175,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 const AuthPrompt: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5 p-4">
       <div className="w-full max-w-md">
@@ -340,9 +182,7 @@ const AuthPrompt: React.FC = () => {
           <h1 className="text-4xl font-bold text-primary mb-2">⚽ BetWise</h1>
           <p className="text-muted-foreground">Your trusted football betting partner</p>
         </div>
-        
         {isLogin ? <LoginForm /> : <SignupForm />}
-        
         <div className="text-center mt-6">
           <button
             onClick={() => setIsLogin(!isLogin)}
@@ -354,4 +194,4 @@ const AuthPrompt: React.FC = () => {
       </div>
     </div>
   );
-};
+}; 
