@@ -22,10 +22,10 @@ const queryClient = new QueryClient({
 });
 
 // Lazy load components for better performance
-const LazyIndex = React.lazy(() => import("./pages/Index"));
-const LazyNotFound = React.lazy(() => import("./pages/NotFound"));
-const LazyPaymentCallback = React.lazy(() => import("./pages/PaymentCallback").then(module => ({ default: module.PaymentCallback })));
-const LazyPaymentSimulate = React.lazy(() => import("./pages/PaymentSimulate").then(module => ({ default: module.PaymentSimulate })));
+// const LazyIndex = React.lazy(() => import("./pages/Index"));
+// const LazyNotFound = React.lazy(() => import("./pages/NotFound"));
+// const LazyPaymentCallback = React.lazy(() => import("./pages/PaymentCallback").then(module => ({ default: module.PaymentCallback })));
+// const LazyPaymentSimulate = React.lazy(() => import("./pages/PaymentSimulate").then(module => ({ default: module.PaymentSimulate })));
 
 const App = () => {
   // Initialize performance optimizations
@@ -86,17 +86,19 @@ const App = () => {
         <Toaster />
         <Sonner />
         <AuthProvider>
-          <BrowserRouter>
+          {/* <BrowserRouter>
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>
                 <Route path="/" element={<LazyIndex />} />
                 <Route path="/payment/callback" element={<LazyPaymentCallback />} />
                 <Route path="/payment/simulate" element={<LazyPaymentSimulate />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<LazyNotFound />} />
               </Routes>
             </Suspense>
-          </BrowserRouter>
+          </BrowserRouter> */}
+          <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <h1>App Loaded (Router Temporarily Disabled)</h1>
+          </div>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
