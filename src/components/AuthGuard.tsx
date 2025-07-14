@@ -32,23 +32,28 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  console.log('[AuthProvider] Render start');
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch user profile from DB
   const fetchUserProfile = useCallback(async (userId: string): Promise<User | null> => {
+    console.log('[AuthProvider] fetchUserProfile called with userId:', userId);
     try {
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
-      const { data: roles } = await supabase
+      if (profileError) console.error('[AuthProvider] profileError:', profileError);
+      const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
+      if (rolesError) console.error('[AuthProvider] rolesError:', rolesError);
       const isAdmin = roles?.some(r => r.role === 'admin') || false;
       if (profile) {
+        console.log('[AuthProvider] Profile loaded:', profile);
         return {
           id: profile.id,
           email: profile.email || '',
@@ -60,26 +65,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return null;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('[AuthProvider] Error fetching user profile:', error);
       return null;
     }
   }, []);
 
   // Restore session on mount
   useEffect(() => {
+    console.log('[AuthProvider] useEffect (restore session)');
     let mounted = true;
     const restore = async () => {
       setIsLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('[AuthProvider] Calling supabase.auth.getSession()');
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) console.error('[AuthProvider] getSession error:', error);
+      console.log('[AuthProvider] Session:', session);
       if (session?.user) {
         const profile = await fetchUserProfile(session.user.id);
         if (mounted) setUser(profile);
       }
       setIsLoading(false);
+      console.log('[AuthProvider] setIsLoading(false) called');
     };
     restore();
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[AuthProvider] onAuthStateChange:', event, session);
       if (session?.user) {
         const profile = await fetchUserProfile(session.user.id);
         setUser(profile);
