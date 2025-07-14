@@ -44,13 +44,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = useCallback(async (userId: string): Promise<User | null> => {
     console.log('[AuthProvider] fetchUserProfile called', userId);
-    // Check cache first
-    if (userProfileCache.has(userId)) {
-      return userProfileCache.get(userId) || null;
-    }
-
     try {
       // Parallel queries for better performance
+      console.log('[AuthProvider] fetching profile and roles from Supabase');
       const [profileResult, rolesResult] = await Promise.all([
         supabase
           .from('profiles')
@@ -62,11 +58,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select('role')
           .eq('user_id', userId)
       ]);
-
+      console.log('[AuthProvider] profileResult:', profileResult);
+      console.log('[AuthProvider] rolesResult:', rolesResult);
       const profile = profileResult.data;
       const roles = rolesResult.data;
       const isAdmin = roles?.some(r => r.role === 'admin') || false;
-
       if (profile) {
         const userProfile = {
           id: profile.id,
@@ -76,14 +72,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin,
           dailyAccessGrantedUntil: profile.daily_access_granted_until
         };
-
         // Cache the result
         userProfileCache.set(userId, userProfile);
         return userProfile;
       }
+      console.log('[AuthProvider] No profile found for user', userId);
       return null;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('[AuthProvider] Error in fetchUserProfile:', error);
       return null;
     }
   }, [session]);
@@ -91,69 +87,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('[AuthProvider] useEffect running');
     let mounted = true;
-
     // Set up auth state listener with debouncing
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
-
-        setSession(session);
-        
-        if (session?.user) {
-          const userProfile = await fetchUserProfile(session.user.id);
-          if (mounted) {
-            setUser(userProfile);
-            setIsLoading(false);
+    try {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (!mounted) return;
+          setSession(session);
+          if (session?.user) {
+            console.log('[AuthProvider] Auth state change: user found', session.user.id);
+            const userProfile = await fetchUserProfile(session.user.id);
+            if (mounted) {
+              setUser(userProfile);
+              setIsLoading(false);
+            }
+          } else {
+            if (mounted) {
+              setUser(null);
+              setIsLoading(false);
+            }
           }
-        } else {
+        }
+      );
+      // Check for existing session with timeout
+      const sessionCheck = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!mounted) return;
+          setSession(session);
+          if (session?.user) {
+            console.log('[AuthProvider] Session check: user found', session.user.id);
+            const userProfile = await fetchUserProfile(session.user.id);
+            if (mounted) {
+              setUser(userProfile);
+              setIsLoading(false);
+            }
+          } else {
+            if (mounted) {
+              setIsLoading(false);
+            }
+          }
+        } catch (error) {
+          console.error('[AuthProvider] Error in sessionCheck:', error);
           if (mounted) {
-            setUser(null);
             setIsLoading(false);
           }
         }
-      }
-    );
-
-    // Check for existing session with timeout
-    const sessionCheck = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!mounted) return;
-
-        setSession(session);
-        if (session?.user) {
-          const userProfile = await fetchUserProfile(session.user.id);
-          if (mounted) {
-            setUser(userProfile);
-            setIsLoading(false);
-          }
-        } else {
-          if (mounted) {
-            setIsLoading(false);
-          }
-        }
-      } catch (error) {
-        console.error('Session check error:', error);
-        if (mounted) {
+      };
+      // Add timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        if (mounted && isLoading) {
           setIsLoading(false);
         }
-      }
-    };
-
-    // Add timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      if (mounted && isLoading) {
-        setIsLoading(false);
-      }
-    }, 3000); // 3 second timeout
-
-    sessionCheck();
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-      clearTimeout(timeoutId);
-    };
+      }, 3000); // 3 second timeout
+      sessionCheck();
+      return () => {
+        mounted = false;
+        subscription.unsubscribe();
+        clearTimeout(timeoutId);
+      };
+    } catch (error) {
+      console.error('[AuthProvider] Error in useEffect setup:', error);
+      setIsLoading(false);
+    }
   }, [fetchUserProfile, isLoading]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
