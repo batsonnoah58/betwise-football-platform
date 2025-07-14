@@ -45,11 +45,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select('*')
         .eq('id', userId)
         .single();
+      console.log('[AuthProvider] profiles query result:', { profile, profileError });
+      if (!profile) console.warn('[AuthProvider] profile is null or undefined!');
       if (profileError) console.error('[AuthProvider] profileError:', profileError);
       const { data: roles, error: rolesError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId);
+      console.log('[AuthProvider] user_roles query result:', { roles, rolesError });
+      if (!roles) console.warn('[AuthProvider] roles is null or undefined!');
       if (rolesError) console.error('[AuthProvider] rolesError:', rolesError);
       const isAdmin = roles?.some(r => r.role === 'admin') || false;
       if (profile) {
