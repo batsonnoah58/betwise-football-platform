@@ -74,6 +74,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // TEMP: Test Supabase client directly
+  useEffect(() => {
+    console.log('[AuthProvider][TEST] Running direct Supabase test...');
+    supabase.from('profiles').select('*').then(({ data, error }) => {
+      console.log('[AuthProvider][TEST] profiles table fetch result:', { data, error });
+    });
+  }, []);
+
   // Restore session on mount
   useEffect(() => {
     console.log('[AuthProvider] useEffect (restore session)');
